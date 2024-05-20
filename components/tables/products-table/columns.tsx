@@ -1,19 +1,10 @@
 "use client";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Product } from "@/constants/data";
+import { Product } from "@/types";
 import { ColumnDef } from "@tanstack/react-table";
 import { CellAction } from "./cell-action";
+import { Badge } from "@/components/ui/badge";
 
-export type Product = {
-  id: number;
-  price: number;
-  category: string;
-  updated_at: string; // Alternatively, you can use Date if you plan to parse this string into a Date object
-  photo_url: string;
-  name: string;
-  description: string;
-  created_at: string; // Alternatively, you can use Date if you plan to parse this string into a Date object
-};
 export const columns: ColumnDef<Product>[] = [
   {
     id: "select",
@@ -34,30 +25,50 @@ export const columns: ColumnDef<Product>[] = [
     enableSorting: false,
     enableHiding: false,
   },
+  {
+    accessorKey: "id",
+    header: "ID",
+  },
 
   {
-    id: "photo_url",
+    accessorKey: "name",
+    header: "Product",
+    cell: ({ row }) => {
+      return (
+        <div className="flex justify-center gap-2 w-full max-w-60 items-center">
+          <img
+            src={row.original.featuredImage.node.sourceUrl}
+            alt={row.original.name}
+            className="w-20 h-20 rounded-sm"
+          />
+          <div className="truncate w-40">{row.original.name}</div>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "description",
+    header: "Description",
     cell: ({ row }) => (
-      <img
-        src={row.original.photo_url}
-        alt={row.original.name}
-        className="w-20 h-20 rounded-sm"
-      />
+      <div
+        className="w-full max-w-md"
+        dangerouslySetInnerHTML={{ __html: row.original.shortDescription }}
+      ></div>
     ),
   },
   {
-    accessorKey: "name",
-    header: "NAME",
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => (
+      <Badge
+        variant={
+          row.original?.status == "publish" ? "secondary" : "destructive"
+        }
+      >
+        {row.original.status}
+      </Badge>
+    ),
   },
-  {
-    accessorKey: "category",
-    header: "CATEGORY",
-  },
-  {
-    accessorKey: "price",
-    header: "PRICE",
-  },
-
   {
     id: "actions",
     cell: ({ row }) => <CellAction data={row.original} />,

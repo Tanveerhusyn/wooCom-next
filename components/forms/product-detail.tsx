@@ -13,7 +13,7 @@ import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
-import { Product } from "@/constants/data";
+import { Product } from "@/types";
 import {
   Carousel,
   CarouselMainContainer,
@@ -51,23 +51,23 @@ export default function ProductDetail({ product }: { product: Product }) {
       </TabsList>
       <TabsContent value="overview">
         <Card className="flex justify-between items-start p-4">
-          <div className="flex flex-col justify-center items-start w-[60%] bg-[#27272a] p-4">
+          <div className="flex flex-col justify-center items-start w-[60%] bg-white/10 shadow-md rounded-lg p-4">
             <CardHeader>
-              <CardTitle>{product.name}</CardTitle>
+              <CardTitle>{product?.name}</CardTitle>
               <CardDescription>
                 View and edit the overview details for this item.
               </CardDescription>
             </CardHeader>
-            <Carousel className="max-w-[500px]">
+            <Carousel className="s-full">
               <CarouselNext className="top-1/3 -translate-y-1/3" />
               <CarouselPrevious className="top-1/3 -translate-y-1/3" />
               <CarouselMainContainer className="h-60">
                 {Array.from({ length: 5 }).map((_, index) => (
                   <SliderMainItem key={index} className="bg-transparent">
                     <img
-                      src={product.photo_url}
-                      alt={product.name}
-                      className="w-full h-48 object-cover"
+                      src={product.image.sourceUrl}
+                      alt={product?.name}
+                      className="w-full h-full object-cover rounded-lg"
                     />
                   </SliderMainItem>
                 ))}
@@ -142,9 +142,12 @@ export default function ProductDetail({ product }: { product: Product }) {
               </div>
               <div className="flex flex-col py-3">
                 <dt className="mb-1 text-gray-500 md:text-lg dark:text-gray-400">
-                  Category
+                  Description
                 </dt>
-                <dd className="text-lg font-semibold">{product.category}</dd>
+                <dd
+                  className="text-lg font-semibold"
+                  dangerouslySetInnerHTML={{ __html: product.description }}
+                ></dd>
               </div>
               <div className="flex flex-col pt-3">
                 <dt className="mb-1 text-gray-500 md:text-lg dark:text-gray-400">
@@ -240,14 +243,14 @@ export default function ProductDetail({ product }: { product: Product }) {
         </Card>
       </TabsContent>
       <TabsContent value="attributes">
-        <Card>
+        <Card className="bg-white">
           <CardHeader>
             <CardTitle>Attributes</CardTitle>
             <CardDescription>
               Manage the attributes for this item.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2 bg-white">
             <div className="space-y-1">
               <Label htmlFor="color">Color</Label>
               <Input

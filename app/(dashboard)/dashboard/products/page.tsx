@@ -8,6 +8,7 @@ import { Employee, Product } from "@/constants/data";
 import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { fetchProducts } from "@/lib/queries";
 
 const breadcrumbItems = [{ title: "Products", link: "/dashboard/products" }];
 
@@ -23,14 +24,18 @@ export default async function page({ searchParams }: paramsProps) {
   const country = searchParams.search || null;
   const offset = (page - 1) * pageLimit;
 
-  const res = await fetch(
-    `https://api.slingacademy.com/v1/sample-data/products?offset=${offset}&limit=${pageLimit}` +
-      (country ? `&search=${country}` : ""),
-  );
-  const employeeRes = await res.json();
-  const totalUsers = employeeRes.total_products; //1000
-  const pageCount = Math.ceil(totalUsers / pageLimit);
-  const products: Product[] = employeeRes.products;
+  const allProducts = await fetchProducts(10, String(offset));
+
+  console.log("ALL PRODUCTS", allProducts);
+
+  // const res = await fetch(
+  //   `https://api.slingacademy.com/v1/sample-data/products?offset=${offset}&limit=${pageLimit}` +
+  //     (country ? `&search=${country}` : ""),
+  // );
+  // const employeeRes = await res.json();
+  // const totalUsers = employeeRes.total_products; //1000
+  // const pageCount = Math.ceil(totalUsers / pageLimit);
+  // const products: Product[] = employeeRes.products;
   return (
     <>
       <div className="flex-1 space-y-4  p-4 md:p-8 pt-6">
@@ -55,9 +60,9 @@ export default async function page({ searchParams }: paramsProps) {
           searchKey="product"
           pageNo={page}
           columns={columns}
-          totalUsers={totalUsers}
-          data={products}
-          pageCount={pageCount}
+          totalUsers={1000}
+          data={allProducts.products.nodes}
+          pageCount={allProducts.products.nodes.length}
         />
       </div>
     </>
