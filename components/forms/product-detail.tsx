@@ -23,6 +23,8 @@ import {
   CarouselThumbsContainer,
   SliderThumbItem,
 } from "@/components/extension/carousel";
+import Sizes from "../extension/sizes";
+import TextForm from "../extension/textForm";
 
 export default function ProductDetail({ product }: { product: Product }) {
   const [formData, setFormData] = useState({
@@ -212,74 +214,10 @@ export default function ProductDetail({ product }: { product: Product }) {
         </Card>
       </TabsContent>
       <TabsContent value="text">
-        <Card>
-          <CardHeader>
-            <CardTitle>Text</CardTitle>
-            <CardDescription>
-              Edit the text content for this item.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="space-y-1">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                defaultValue={product.title}
-                id="title"
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="body">Body</Label>
-              <Textarea
-                defaultValue={product.body}
-                id="body"
-                onChange={handleInputChange}
-              />
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={handleSaveChanges}>Save changes</Button>
-          </CardFooter>
-        </Card>
+        <TextForm />
       </TabsContent>
       <TabsContent value="attributes">
-        <Card className="bg-white">
-          <CardHeader>
-            <CardTitle>Attributes</CardTitle>
-            <CardDescription>
-              Manage the attributes for this item.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 bg-white">
-            <div className="space-y-1">
-              <Label htmlFor="color">Color</Label>
-              <Input
-                defaultValue={product.color}
-                id="color"
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="size">Size</Label>
-              <Input
-                defaultValue={product.size}
-                id="size"
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="price">Price</Label>
-              <Input
-                defaultValue={product.price}
-                id="price"
-                onChange={handleInputChange}
-              />
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={handleSaveChanges}>Save changes</Button>
-          </CardFooter>
-        </Card>
+        <Sizes />
       </TabsContent>
     </Tabs>
   );

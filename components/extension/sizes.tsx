@@ -11,6 +11,7 @@ import {
 } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { StarIcon } from "@heroicons/react/20/solid";
+import { Button } from "../ui/button";
 
 const product = {
   name: "Basic Tee 6-Pack ",
@@ -24,7 +25,26 @@ const product = {
   colors: [
     { name: "White", class: "bg-white", selectedClass: "ring-gray-400" },
     { name: "Gray", class: "bg-gray-200", selectedClass: "ring-gray-400" },
-    { name: "Black", class: "bg-gray-900", selectedClass: "ring-gray-900" },
+    { name: "Black", class: "bg-white", selectedClass: "ring-white" },
+    { name: "Red", class: "bg-red-500", selectedClass: "ring-red-400" },
+    { name: "Blue", class: "bg-blue-500", selectedClass: "ring-blue-400" },
+    { name: "Green", class: "bg-green-500", selectedClass: "ring-green-400" },
+    {
+      name: "Yellow",
+      class: "bg-yellow-500",
+      selectedClass: "ring-yellow-400",
+    },
+    {
+      name: "Purple",
+      class: "bg-purple-500",
+      selectedClass: "ring-purple-400",
+    },
+    {
+      name: "Orange",
+      class: "bg-orange-500",
+      selectedClass: "ring-orange-400",
+    },
+    { name: "Pink", class: "bg-pink-500", selectedClass: "ring-pink-400" },
   ],
   sizes: [
     { name: "XXS", inStock: true },
@@ -35,6 +55,8 @@ const product = {
     { name: "XL", inStock: true },
     { name: "XXL", inStock: true },
     { name: "XXXL", inStock: false },
+    { name: "4XL", inStock: true },
+    { name: "5XL", inStock: false },
   ],
 };
 
@@ -49,28 +71,12 @@ export default function Sizes() {
 
   return (
     <>
-      <div className="flex w-full transform text-left bg-black text-base transition p-4 md:my-8 md:max-w-2xl md:px-4 lg:max-w-4xl">
-        <div className="relative flex w-full items-center overflow-hidden bg-white px-4 pb-8 pt-14 shadow-2xl sm:px-6 sm:pt-8 md:p-6 lg:p-8">
-          <button
-            type="button"
-            className="absolute right-4 top-4 text-gray-400 hover:text-gray-500 sm:right-6 sm:top-8 md:right-6 md:top-6 lg:right-8 lg:top-8"
-            onClick={() => setOpen(false)}
-          >
-            <span className="sr-only">Close</span>
-            <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-          </button>
-
+      <div className="flex w-full  transform text-left bg-black text-base transition p-4 md:my-8 md:max-w-2xl md:px-4 lg:max-w-4xl">
+        <div className="relative flex w-full items-center overflow-hidden bg-white/10 rounded-lg px-4 pb-8 pt-14 shadow-2xl sm:px-6 sm:pt-8 md:p-6 lg:p-8">
           <div className="grid w-full grid-cols-1 items-start gap-x-6 gap-y-8 sm:grid-cols-12 lg:gap-x-8">
-            <div className="aspect-h-3 aspect-w-2 overflow-hidden rounded-lg bg-gray-100 sm:col-span-4 lg:col-span-5">
-              <img
-                src={product.imageSrc}
-                alt={product.imageAlt}
-                className="object-cover object-center"
-              />
-            </div>
             <div className="sm:col-span-8 lg:col-span-7">
-              <h2 className="text-2xl font-bold text-gray-900 sm:pr-12">
-                {product.name}
+              <h2 className="text-2xl font-bold text-white sm:pr-12">
+                Choose color and size
               </h2>
 
               <section aria-labelledby="information-heading" className="mt-2">
@@ -78,35 +84,7 @@ export default function Sizes() {
                   Product information
                 </h3>
 
-                <p className="text-2xl text-gray-900">{product.price}</p>
-
                 {/* Reviews */}
-                <div className="mt-6">
-                  <h4 className="sr-only">Reviews</h4>
-                  <div className="flex items-center">
-                    <div className="flex items-center">
-                      {[0, 1, 2, 3, 4].map((rating) => (
-                        <StarIcon
-                          key={rating}
-                          className={classNames(
-                            product.rating > rating
-                              ? "text-gray-900"
-                              : "text-gray-200",
-                            "h-5 w-5 flex-shrink-0",
-                          )}
-                          aria-hidden="true"
-                        />
-                      ))}
-                    </div>
-                    <p className="sr-only">{product.rating} out of 5 stars</p>
-                    <a
-                      href="#"
-                      className="ml-3 text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                    >
-                      {product.reviewCount} reviews
-                    </a>
-                  </div>
-                </div>
               </section>
 
               <section aria-labelledby="options-heading" className="mt-10">
@@ -117,7 +95,7 @@ export default function Sizes() {
                 <form>
                   {/* Colors */}
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900">Color</h4>
+                    <h4 className="text-sm font-medium text-white">Color</h4>
 
                     <RadioGroup
                       value={selectedColor}
@@ -158,9 +136,7 @@ export default function Sizes() {
                   {/* Sizes */}
                   <div className="mt-10">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium text-gray-900">
-                        Size
-                      </h4>
+                      <h4 className="text-sm font-medium text-white">Size</h4>
                       <a
                         href="#"
                         className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
@@ -184,9 +160,9 @@ export default function Sizes() {
                             className={({ active }) =>
                               classNames(
                                 size.inStock
-                                  ? "cursor-pointer bg-white text-gray-900 shadow-sm"
+                                  ? "cursor-pointer bg-white text-black shadow-sm"
                                   : "cursor-not-allowed bg-gray-50 text-gray-200",
-                                active ? "ring-2 ring-indigo-500" : "",
+                                active ? "ring-4 ring-indigo-500" : "",
                                 "group relative flex items-center justify-center rounded-md border py-3 px-4 text-sm font-medium uppercase hover:bg-gray-50 focus:outline-none sm:flex-1",
                               )
                             }
@@ -234,12 +210,9 @@ export default function Sizes() {
                     </RadioGroup>
                   </div>
 
-                  <button
-                    type="submit"
-                    className="mt-6 flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                  >
-                    Add to bag
-                  </button>
+                  <Button className="mt-6 " variant="default">
+                    Save Changes
+                  </Button>
                 </form>
               </section>
             </div>
