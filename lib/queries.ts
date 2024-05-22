@@ -1,5 +1,5 @@
 
-import {Product, ProductsData} from '../types';
+import {Product, ProductsData, WordPressMedia} from '../types';
 export async function fetchProducts(first: number, after?: string): Promise<ProductsData> {
   const query = `query GetProducts($first: Int!, $after: String) {
     products(first: $first, after: $after) {
@@ -203,33 +203,7 @@ export async function fetchProducts(first: number, after?: string): Promise<Prod
           }
           onSale
           price
-          productCategories {
-            nodes {
-              name
-            }
-          }
-          productTags {
-            nodes {
-              name
-            }
-          }
-          related {
-            nodes {
-              name
-            }
-          }
-          reviewCount
-          reviews(first: 5) {
-            nodes {
-              content
-              author {
-                node {
-                  name
-                }
-              }
-              date
-            }
-          }
+         
           shortDescription
           sku
           slug
@@ -247,20 +221,7 @@ export async function fetchProducts(first: number, after?: string): Promise<Prod
           id
           name
           description
-          averageRating
-          catalogVisibility
-          commentCount
-          comments(first: 5) {
-            nodes {
-              content
-              author {
-                node {
-                  name
-                }
-              }
-              date
-            }
-          }
+          
           date
           dateOnSaleFrom
           dateOnSaleTo
@@ -275,11 +236,7 @@ export async function fetchProducts(first: number, after?: string): Promise<Prod
               sourceUrl
             }
           }
-          metaData {
-            key
-            value
-          }
-          onSale
+          
           price
           productCategories {
             nodes {
@@ -291,23 +248,7 @@ export async function fetchProducts(first: number, after?: string): Promise<Prod
               name
             }
           }
-          related {
-            nodes {
-              name
-            }
-          }
-          reviewCount
-          reviews(first: 5) {
-            nodes {
-              content
-              author {
-                node {
-                  name
-                }
-              }
-              date
-            }
-          }
+          
           shortDescription
           sku
           slug
@@ -327,14 +268,17 @@ export async function fetchProducts(first: number, after?: string): Promise<Prod
 
   const variables = { first, after };
 
-  try {
+  try { 
     const response = await fetch('https://backend.02xz.com/graphql', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ query, variables }),
-    });
+
+
+    }
+  );
 
     if (!response.ok) {
       throw new Error('Network response was not ok');
@@ -346,7 +290,7 @@ export async function fetchProducts(first: number, after?: string): Promise<Prod
       throw new Error(result.errors.map(error => error.message).join(', '));
     }
 
-    console.log('result', result);
+    console.log('result', result.data.products.nodes);
 
     // return result.data.products;
     return result.data;
@@ -401,3 +345,30 @@ export async function fetchProductById(id: string): Promise<Product> {
         return null;
     }
     }
+
+
+export async function getWordPressMedia():Promise<WordPressMedia[]> {
+  try{
+    // fetch wordpress media using Rest API
+
+    const response = await fetch('https://backend.02xz.com/wp-json/wp/v2/media?per_page=30');
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+
+    //
+    const data = await response.json();
+      const images: WordPressMedia[] = data.map((item: any) => ({
+    id: item.id,
+    source_url: item.source_url,
+  }));
+
+    return images;
+
+  }
+  catch(error){
+    console.error('Error fetching wordpress media:', error);
+    return null;
+  }
+ 
+} 

@@ -123,6 +123,11 @@ export interface ProductsData {
     nodes: Product[];
   };
 }
+export interface WordPressMedia {
+  id: number;
+  source_url: string;
+}
+
 
 export interface NavItemWithChildren extends NavItem {
   items: NavItemWithChildren[];

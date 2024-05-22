@@ -6,6 +6,7 @@ import { fetchProductById } from "@/lib/queries";
 
 export default async function Page({ params }) {
   console.log("searchParams", params);
+
   const breadcrumbItems = [
     { title: "Products", link: "/dashboard/products" },
     { title: "Edit", link: `/dashboard/employee/${params.Id}` },
@@ -13,7 +14,7 @@ export default async function Page({ params }) {
 
   //Trigger this endpoint http://localhost:3000/dashboard/products/params.Id
 
-  const product = await fetchProductById(params.Id);
+  const product = await fetchProductById(decodeURIComponent(params.Id));
 
   // const res = await fetch(
   //   `https://api.slingacademy.com/v1/sample-data/products/${params.Id}`,

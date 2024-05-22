@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import React, { useState } from "react";
 import { TabsTrigger, TabsList, TabsContent, Tabs } from "../ui/tabs";
 import {
   CardTitle,
@@ -14,6 +14,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { Product } from "@/types";
+import FileUploader from "@/components/forms/file-uploader";
 import {
   Carousel,
   CarouselMainContainer,
@@ -25,8 +26,14 @@ import {
 } from "@/components/extension/carousel";
 import Sizes from "../extension/sizes";
 import TextForm from "../extension/textForm";
+import { ScrollArea } from "../ui/scroll-area";
+import { getWordPressMedia } from "@/lib/queries";
 
 export default function ProductDetail({ product }: { product: Product }) {
+  const [images, setImages] = useState([]);
+  const [selectedImage, setSelectedImage] = useState(product.image.sourceUrl);
+  const [files, setFiles] = useState<File[] | null>(null);
+
   const [formData, setFormData] = useState({
     name: "",
     category: "",
@@ -36,6 +43,29 @@ export default function ProductDetail({ product }: { product: Product }) {
     color: "",
     size: "",
   });
+
+  React.useEffect(() => {
+    if (files?.length > 0) {
+      console.log("FILES", files);
+      //add the image file to the images useState by first converting the File object to a URL
+      const file = files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const url = reader.result;
+        setImages((prevImages) => [{ source_url: url }, ...prevImages]);
+      };
+      reader?.readAsDataURL(file);
+    }
+  }, [files]);
+
+  React.useEffect(() => {
+    const fetchMedia = async () => {
+      const media = await getWordPressMedia();
+      console.log("MEDIA", media);
+      setImages(media);
+    };
+    fetchMedia();
+  }, []);
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
@@ -190,27 +220,46 @@ export default function ProductDetail({ product }: { product: Product }) {
           </CardFooter> */}
         </Card>
       </TabsContent>
-      <TabsContent value="media">
-        <Card>
-          <CardHeader>
-            <CardTitle>Media</CardTitle>
-            <CardDescription>
-              Upload and manage the media assets for this item.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="space-y-1">
-              <Label htmlFor="image">Image</Label>
-              <Input id="image" type="file" />
+      <TabsContent value="media" className="h-[800px] overflow-y-auto">
+        <Card className="h-full max-h-[1000px] overflow-auto">
+          <CardHeader className="flex flex-row justify-between">
+            <div>
+              <CardTitle>Media</CardTitle>
+              <CardDescription>
+                Upload and manage the media assets for this item.
+              </CardDescription>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="video">Video</Label>
-              <Input id="video" type="file" />
+            <Button onClick={handleSaveChanges}>Save changes</Button>
+          </CardHeader>
+          <CardContent className="space-y-2 flex flex-col  overflow-y-auto">
+            <div className="m-2 p-2 flex">
+              <img
+                className="h-[600px] w-[600px] rounded-lg object-cover"
+                src={selectedImage}
+                alt="Gallery image"
+              />
+              <div className="flex flex-col">
+                <FileUploader files={files} setFiles={setFiles} />
+                <CardDescription className="m-2 p-2">
+                  Choose an Image from the Pool
+                </CardDescription>
+                <ScrollArea className="max-h-[340px]  overflow-y-auto">
+                  <div className="m-2 p-2 h-full  grid grid-cols-2 md:grid-cols-5 gap-5 my-4">
+                    {images.map((image, index) => (
+                      <div key={index}>
+                        <img
+                          onClick={() => setSelectedImage(image.source_url)}
+                          className="h-auto min-h-[200px] max-h-[200px] max-w-full rounded-lg hover:scale-105 transition-transform duration-200 ease-in-out cursor-pointer"
+                          src={image.source_url}
+                          alt="Gallery image"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
             </div>
           </CardContent>
-          <CardFooter>
-            <Button onClick={handleSaveChanges}>Save changes</Button>
-          </CardFooter>
         </Card>
       </TabsContent>
       <TabsContent value="text">
