@@ -15,29 +15,19 @@ export async function fetchProducts(first: number, after?: string): Promise<Prod
           description
           averageRating
           catalogVisibility
-          commentCount
-          comments(first: 5) {
-            nodes {
-              content
-              author {
-                node {
-                  name
-                }
-              }
-              date
-            }
-          }
           date
           dateOnSaleFrom
           dateOnSaleTo
           featured
           featuredImage {
             node {
+              id
               sourceUrl
             }
           }
           galleryImages {
             nodes {
+              id
               sourceUrl
             }
           }
@@ -111,11 +101,13 @@ export async function fetchProducts(first: number, after?: string): Promise<Prod
           featured
           featuredImage {
             node {
+              id
               sourceUrl
             }
           }
           galleryImages {
             nodes {
+              id
               sourceUrl
             }
           }
@@ -189,11 +181,13 @@ export async function fetchProducts(first: number, after?: string): Promise<Prod
           featured
           featuredImage {
             node {
+              id
               sourceUrl
             }
           }
           galleryImages {
             nodes {
+              id
               sourceUrl
             }
           }
@@ -228,11 +222,13 @@ export async function fetchProducts(first: number, after?: string): Promise<Prod
           featured
           featuredImage {
             node {
+              id
               sourceUrl
             }
           }
           galleryImages {
             nodes {
+              id
               sourceUrl
             }
           }
@@ -314,6 +310,7 @@ export async function fetchProductById(id: string): Promise<Product> {
             name
             description
             image {
+            id
             sourceUrl
             }
         }
@@ -372,3 +369,165 @@ export async function getWordPressMedia():Promise<WordPressMedia[]> {
   }
  
 } 
+
+ 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  accessToken: string;
+}
+
+export async function authenticate(username: string, password: string): Promise<User | null> {
+  try {
+    const response = await fetch('https://backend.02xz.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: `
+          mutation LoginUser($username: String!, $password: String!) {
+            login(input: { username: $username, password: $password }) {
+              authToken
+            }
+          }
+        `,
+        variables: { username, password },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+
+    const result: { data: { login: { authToken: string } }; errors?: Array<{ message: string }> } = await response.json();
+
+    if (result.errors) {
+      throw new Error(result.errors.map(error => error.message).join(', '));
+    }
+
+    const authToken = result.data.login.authToken;
+    console.log('authToken', authToken);
+
+    // Fetch user details using the authToken
+    const userResponse = await fetch('https://backend.02xz.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({
+        query: `
+          query GetUser {
+            viewer {
+              id
+              name
+              email
+            }
+          }
+        `,
+      }),
+    });
+
+    if (!userResponse.ok) {
+      throw new Error('Network response was not ok');
+    }
+
+    const userResult: { data: { viewer: { id: string, name: string, email: string } }; errors?: Array<{ message: string }> } = await userResponse.json();
+
+    if (userResult.errors) {
+      throw new Error(userResult.errors.map(error => error.message).join(', '));
+    }
+
+    return {
+      ...userResult.data.viewer,
+      accessToken:authToken,
+    };
+  } catch (error) {
+    console.error('Error authenticating:', error);
+    return null;
+  }
+}
+
+
+
+//upload image to wordpress gallery
+export async function uploadImage(file: File, token: string): Promise<WordPressMedia> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('https://backend.02xz.com/wp-json/wp/v2/media', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+
+    const data = await response.json();
+    return {
+      id: data.id,
+      source_url: data.source_url,
+    };
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    return null;
+  }
+}
+
+export async function updateProductImage(productId: string, imageId: string, token: string): Promise<boolean> {
+  const mutation = `
+    mutation UpdateProductImage($productId: ID!, $imageId: ID!) {
+      updateProductImage(input: { productId: $productId, imageId: $imageId }) {
+        product {
+          id
+          name
+          description
+          image {
+            id
+            sourceUrl
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch('https://backend.02xz.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        query: mutation,
+        variables: { 
+          productId, 
+          imageId,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorDetails = await response.text();
+      throw new Error(`Product update failed: ${errorDetails}`);
+    }
+
+    const result: { data: { updateProductImage: { product: Product } }; errors?: Array<{ message: string }> } = await response.json();
+
+    if (result.errors) {
+      throw new Error(result.errors.map(error => error.message).join(', '));
+    }
+
+    return !!result.data.updateProductImage.product;
+  } catch (error) {
+    console.error('Error updating product image:', error);
+    return false;
+  }
+}

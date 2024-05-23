@@ -9,6 +9,9 @@ import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { fetchProducts } from "@/lib/queries";
+import { useSession } from "next-auth/react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 const breadcrumbItems = [{ title: "Products", link: "/dashboard/products" }];
 
@@ -26,7 +29,8 @@ export default async function page({ searchParams }: paramsProps) {
 
   const allProducts = await fetchProducts(10, String(offset));
 
-  console.log("ALL PRODUCTS", allProducts);
+  const user = await getServerSession(authOptions);
+  console.log("USERR", user);
 
   // const res = await fetch(
   //   `https://api.slingacademy.com/v1/sample-data/products?offset=${offset}&limit=${pageLimit}` +

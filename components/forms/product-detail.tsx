@@ -27,12 +27,18 @@ import {
 import Sizes from "../extension/sizes";
 import TextForm from "../extension/textForm";
 import { ScrollArea } from "../ui/scroll-area";
-import { getWordPressMedia } from "@/lib/queries";
+import {
+  getWordPressMedia,
+  updateProductImage,
+  uploadImage,
+} from "@/lib/queries";
+import { useSession } from "next-auth/react";
 
 export default function ProductDetail({ product }: { product: Product }) {
   const [images, setImages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(product.image.sourceUrl);
   const [files, setFiles] = useState<File[] | null>(null);
+  const { data } = useSession();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -72,7 +78,24 @@ export default function ProductDetail({ product }: { product: Product }) {
     setFormData((prevFormData) => ({ ...prevFormData, [id]: value }));
   };
 
-  const handleSaveChanges = () => {};
+  const handleSaveChanges = async () => {
+    //@ts-ignore
+    // const result = await uploadImage(files[0], data.user.accessToken);
+    // console.log("IMage UPload", result);
+    // if (result) {
+    //   console.log("Image uploaded successfully");
+    // }
+
+    const result = await updateProductImage(
+      product.id,
+      product.image.id,
+      data.user.accessToken,
+    );
+    console.log("IMage UPdate", result);
+    if (result) {
+      console.log("Image updated successfully");
+    }
+  };
   return (
     <Tabs className="w-full" defaultValue="overview">
       <TabsList className="grid w-full grid-cols-4">
