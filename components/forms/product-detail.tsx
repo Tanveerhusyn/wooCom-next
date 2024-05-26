@@ -289,8 +289,10 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                 <dt className="mb-1 text-gray-500 md:text-lg dark:text-gray-400">
                   Category
                 </dt>
-                {product.productCategories.nodes.map((cat) => (
-                  <Badge className="max-w-[fit-content]">{cat.name}</Badge>
+                {product.productCategories.nodes.map((cat, idx) => (
+                  <Badge key={idx} className="max-w-[fit-content]">
+                    {cat.name}
+                  </Badge>
                 ))}
               </div>
             </dl>
@@ -349,10 +351,10 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                   </div>
                   <div className="grid grid-cols-3 w-[54rem] p-4">
                     {product.variations &&
-                      variantImages.map((variation) => {
+                      variantImages.map((variation, idx) => {
                         console.log("VARIATION", variation);
                         return (
-                          <div className="">
+                          <div key={idx} className="">
                             <h5>{variation.name}</h5>
                             <img
                               src={variation.image.sourceUrl}
