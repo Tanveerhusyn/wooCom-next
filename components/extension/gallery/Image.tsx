@@ -18,6 +18,7 @@ const Image = memo((props) => {
     ...sanitizedProps
   } = props;
 
+  console.log("image Inside", image);
   const {
     attributes,
     listeners,
@@ -93,22 +94,6 @@ const Image = memo((props) => {
             isMarked ? "backdrop-brightness-105 backdrop-contrast-50" : ""
           }`}
         >
-          {/* Featured */}
-          <div>
-            {!featured && isHovered && (
-              <button
-                className="rounded-full border-2 border-transparent bg-white fill-none text-2xl text-yellow-400 opacity-70 transition-colors hover:fill-current hover:opacity-100"
-                onClick={() => {
-                  setIsHovered(false);
-                  handleFeatured(image.id);
-                }}
-                title="Set as featured image"
-              >
-                <HiOutlineStar className="fill-inherit" />
-              </button>
-            )}
-          </div>
-
           {/* Selection */}
           <div>
             <Switch

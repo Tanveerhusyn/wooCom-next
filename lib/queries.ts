@@ -1,6 +1,9 @@
-
-import {Product, ProductsData, WordPressMedia} from '../types';
-export async function fetchProducts(first: number, after?: string): Promise<ProductsData> {
+import { Product, ProductsData, SingleProduct, WordPressMedia } from "../types";
+import { Buffer } from "buffer";
+export async function fetchProducts(
+  first: number,
+  after?: string,
+): Promise<ProductsData> {
   const query = `query GetProducts($first: Int!, $after: String) {
     products(first: $first, after: $after) {
       pageInfo {
@@ -264,113 +267,165 @@ export async function fetchProducts(first: number, after?: string): Promise<Prod
 
   const variables = { first, after };
 
-  try { 
-    const response = await fetch('https://backend.02xz.com/graphql', {
-      method: 'POST',
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ query, variables }),
-
-
-    }
-  );
+      next: { revalidate: 0 },
+    });
 
     if (!response.ok) {
-      throw new Error('Network response was not ok');
+      throw new Error("Network response was not ok");
     }
 
-    const result: { data: ProductsData; errors?: Array<{ message: string }> } = await response.json();
+    const result: { data: ProductsData; errors?: Array<{ message: string }> } =
+      await response.json();
 
     if (result.errors) {
-      throw new Error(result.errors.map(error => error.message).join(', '));
+      throw new Error(result.errors.map((error) => error.message).join(", "));
     }
 
-    console.log('result', result.data.products.nodes);
+    console.log("result", result.data.products.nodes);
 
     // return result.data.products;
     return result.data;
   } catch (error) {
-    console.error('Error fetching products:', error);
+    console.error("Error fetching products:", error);
     return {
       products: {
-        pageInfo: { endCursor: '', hasNextPage: false },
-        nodes: []
-      }
+        pageInfo: { endCursor: "", hasNextPage: false },
+        nodes: [],
+      },
     };
   }
 }
 
+function decodeBase64Id(encodedString) {
+  // Decode the Base64 encoded string
+  const decodedString = atob(encodedString);
 
-export async function fetchProductById(id: string): Promise<Product> {
-    const query = `
-        query {
-        product(id: "${id}") {
-            id
-            name
-            description
-            image {
+  // The decoded string is in the format `product:97`, split it to get the ID
+  const parts = decodedString.split(":");
+  return parts[1];
+}
+
+export async function fetchProductById(id: string): Promise<SingleProduct> {
+  const decodedid = decodeBase64Id(id);
+  console.log("decodedid", decodedid);
+
+  const query = `
+   query GetProduct($productId: ID!) {
+  product(id: $productId, idType: DATABASE_ID) {
+    id
+    name
+    description
+    productCategories {
+      nodes {
+        id
+        name
+      }
+    }
+    image {
+      id
+      sourceUrl
+    }
+    ... on VariableProduct {
+      id
+      name
+      variations {
+        nodes {
+          id
+          name
+          price
+          attributes {
+            nodes {
+              name
+              value
+            }
+          }
+          image {
             id
             sourceUrl
-            }
+          }
         }
+      }
+      price
+      stockStatus
+      galleryImages {
+        nodes {
+          id
+          sourceUrl
         }
-    `;
-    
-    try {
-        const response = await fetch('https://backend.02xz.com/graphql', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query }),
-        });
-    
-        if (!response.ok) {
-        throw new Error('Network response was not ok');
-        }
-    
-        const result: { data: { product: Product }; errors?: Array<{ message: string }> } = await response.json();
-    
-        if (result.errors) {
-        throw new Error(result.errors.map(error => error.message).join(', '));
-        }
-    
-        return result.data.product;
-    } catch (error) {
-        console.error('Error fetching product:', error);
-        return null;
+      }
     }
+  }
+}
+  `;
+
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query,
+        variables: { productId: decodedid },
+      }),
+      cache: "no-cache",
+      next: {
+        revalidate: 0,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
     }
 
+    const result: {
+      data: { product: SingleProduct };
+      errors?: Array<{ message: string }>;
+    } = await response.json();
 
-export async function getWordPressMedia():Promise<WordPressMedia[]> {
-  try{
+    if (result.errors) {
+      throw new Error(result.errors.map((error) => error.message).join(", "));
+    }
+
+    return result.data.product;
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    return null;
+  }
+}
+
+export async function getWordPressMedia(): Promise<WordPressMedia[]> {
+  try {
     // fetch wordpress media using Rest API
 
-    const response = await fetch('https://backend.02xz.com/wp-json/wp/v2/media?per_page=30');
+    const response = await fetch(
+      "https://backend.02xz.com/wp-json/wp/v2/media?per_page=30",
+    );
     if (!response.ok) {
-      throw new Error('Network response was not ok');
+      throw new Error("Network response was not ok");
     }
 
     //
     const data = await response.json();
-      const images: WordPressMedia[] = data.map((item: any) => ({
-    id: item.id,
-    source_url: item.source_url,
-  }));
+    const images: WordPressMedia[] = data.map((item: any) => ({
+      id: item.id,
+      source_url: item.source_url,
+    }));
 
     return images;
-
-  }
-  catch(error){
-    console.error('Error fetching wordpress media:', error);
+  } catch (error) {
+    console.error("Error fetching wordpress media:", error);
     return null;
   }
- 
-} 
+}
 
- 
 export interface User {
   id: string;
   name: string;
@@ -378,12 +433,15 @@ export interface User {
   accessToken: string;
 }
 
-export async function authenticate(username: string, password: string): Promise<User | null> {
+export async function authenticate(
+  username: string,
+  password: string,
+): Promise<User | null> {
   try {
-    const response = await fetch('https://backend.02xz.com/graphql', {
-      method: 'POST',
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         query: `
@@ -398,24 +456,27 @@ export async function authenticate(username: string, password: string): Promise<
     });
 
     if (!response.ok) {
-      throw new Error('Network response was not ok');
+      throw new Error("Network response was not ok");
     }
 
-    const result: { data: { login: { authToken: string } }; errors?: Array<{ message: string }> } = await response.json();
+    const result: {
+      data: { login: { authToken: string } };
+      errors?: Array<{ message: string }>;
+    } = await response.json();
 
     if (result.errors) {
-      throw new Error(result.errors.map(error => error.message).join(', '));
+      throw new Error(result.errors.map((error) => error.message).join(", "));
     }
 
     const authToken = result.data.login.authToken;
-    console.log('authToken', authToken);
+    console.log("authToken", authToken);
 
     // Fetch user details using the authToken
-    const userResponse = await fetch('https://backend.02xz.com/graphql', {
-      method: 'POST',
+    const userResponse = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify({
         query: `
@@ -431,43 +492,52 @@ export async function authenticate(username: string, password: string): Promise<
     });
 
     if (!userResponse.ok) {
-      throw new Error('Network response was not ok');
+      throw new Error("Network response was not ok");
     }
 
-    const userResult: { data: { viewer: { id: string, name: string, email: string } }; errors?: Array<{ message: string }> } = await userResponse.json();
+    const userResult: {
+      data: { viewer: { id: string; name: string; email: string } };
+      errors?: Array<{ message: string }>;
+    } = await userResponse.json();
 
     if (userResult.errors) {
-      throw new Error(userResult.errors.map(error => error.message).join(', '));
+      throw new Error(
+        userResult.errors.map((error) => error.message).join(", "),
+      );
     }
 
     return {
       ...userResult.data.viewer,
-      accessToken:authToken,
+      accessToken: authToken,
     };
   } catch (error) {
-    console.error('Error authenticating:', error);
+    console.error("Error authenticating:", error);
     return null;
   }
 }
 
-
-
 //upload image to wordpress gallery
-export async function uploadImage(file: File, token: string): Promise<WordPressMedia> {
+export async function uploadImage(
+  file: File,
+  token: string,
+): Promise<WordPressMedia> {
   try {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append("file", file);
 
-    const response = await fetch('https://backend.02xz.com/wp-json/wp/v2/media', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
+    const response = await fetch(
+      "https://backend.02xz.com/wp-json/wp/v2/media",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
       },
-      body: formData,
-    });
+    );
 
     if (!response.ok) {
-      throw new Error('Network response was not ok');
+      throw new Error("Network response was not ok");
     }
 
     const data = await response.json();
@@ -476,40 +546,50 @@ export async function uploadImage(file: File, token: string): Promise<WordPressM
       source_url: data.source_url,
     };
   } catch (error) {
-    console.error('Error uploading image:', error);
+    console.error("Error uploading image:", error);
     return null;
   }
 }
 
-export async function updateProductImage(productId: string, imageId: string, token: string): Promise<boolean> {
+export async function updateProductImage(
+  productId: string,
+  imageId: string,
+  source_url: string,
+  token: string,
+): Promise<boolean> {
+  const decodeBase64ProductId = decodeBase64Id(productId);
+  const decodeBase64ImageId = decodeBase64Id(imageId);
+
   const mutation = `
-    mutation UpdateProductImage($productId: ID!, $imageId: ID!) {
-      updateProductImage(input: { productId: $productId, imageId: $imageId }) {
-        product {
-          id
-          name
-          description
-          image {
-            id
-            sourceUrl
-          }
-        }
+   mutation UpdateProductImage($productId: ID!, $imageId: ID!, $sourceUrl: String!) {
+  updateProductImage(input: { productId: $productId, imageId: $imageId, sourceUrl: $sourceUrl }) {
+    product {
+      id
+      title
+      image {
+        sourceUrl
       }
     }
-  `;
+    image {
+      id
+      sourceUrl
+    }
+  }
+}`;
 
   try {
-    const response = await fetch('https://backend.02xz.com/graphql', {
-      method: 'POST',
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         query: mutation,
-        variables: { 
-          productId, 
-          imageId,
+        variables: {
+          productId: decodeBase64ProductId,
+          imageId: decodeBase64ImageId,
+          sourceUrl: source_url,
         },
       }),
     });
@@ -519,15 +599,18 @@ export async function updateProductImage(productId: string, imageId: string, tok
       throw new Error(`Product update failed: ${errorDetails}`);
     }
 
-    const result: { data: { updateProductImage: { product: Product } }; errors?: Array<{ message: string }> } = await response.json();
+    const result: {
+      data: { updateProductImage: { product: Product } };
+      errors?: Array<{ message: string }>;
+    } = await response.json();
 
     if (result.errors) {
-      throw new Error(result.errors.map(error => error.message).join(', '));
+      throw new Error(result.errors.map((error) => error.message).join(", "));
     }
 
     return !!result.data.updateProductImage.product;
   } catch (error) {
-    console.error('Error updating product image:', error);
+    console.error("Error updating product image:", error);
     return false;
   }
 }

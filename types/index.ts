@@ -97,22 +97,26 @@ interface ProductBase {
 }
 
 interface SimpleProduct extends ProductBase {
-  __typename: 'SimpleProduct';
+  __typename: "SimpleProduct";
 }
 
 interface VariableProduct extends ProductBase {
-  __typename: 'VariableProduct';
+  __typename: "VariableProduct";
 }
 
 interface ExternalProduct extends ProductBase {
-  __typename: 'ExternalProduct';
+  __typename: "ExternalProduct";
 }
 
 interface GroupProduct extends ProductBase {
-  __typename: 'GroupProduct';
+  __typename: "GroupProduct";
 }
 
-export type Product = SimpleProduct | VariableProduct | ExternalProduct | GroupProduct;
+export type Product =
+  | SimpleProduct
+  | VariableProduct
+  | ExternalProduct
+  | GroupProduct;
 export interface PageInfo {
   endCursor: string;
   hasNextPage: boolean;
@@ -128,6 +132,46 @@ export interface WordPressMedia {
   source_url: string;
 }
 
+export interface SingleProduct {
+  id: string;
+  name: string;
+  description: string;
+  productCategories: {
+    nodes: {
+      id: string;
+      name: string;
+    }[];
+  };
+  image: {
+    id: string;
+    sourceUrl: string;
+  };
+  variations: {
+    nodes: {
+      id: string;
+      name: string;
+      price: string;
+      attributes: {
+        nodes: {
+          name: string;
+          value: string;
+        }[];
+      };
+      image: {
+        id: string;
+        sourceUrl: string;
+      };
+    }[];
+  };
+  price: string;
+  stockStatus: string;
+  galleryImages: {
+    nodes: {
+      id: string;
+      sourceUrl: string;
+    }[];
+  };
+}
 
 export interface NavItemWithChildren extends NavItem {
   items: NavItemWithChildren[];
@@ -136,7 +180,6 @@ export interface NavItemWithChildren extends NavItem {
 export interface NavItemWithOptionalChildren extends NavItem {
   items?: NavItemWithChildren[];
 }
-
 
 export interface FooterItem {
   title: string;

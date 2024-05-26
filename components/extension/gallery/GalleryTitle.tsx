@@ -8,6 +8,7 @@ const Title = ({
   handleMarkAll,
   handleUnmarkAll,
 }) => {
+  console.log("Title", marked);
   return (
     <div className="sticky top-0 z-[1] flex min-h-[3rem] flex-wrap items-center gap-1 bg-black overflow-y-hidden border-b  px-4 py-2 [&_*]:leading-6">
       <div>
@@ -29,9 +30,10 @@ const Title = ({
           enter="transition transform duration-75"
           enterFrom="opacity-0 translate-y-full"
           enterTo="opacity-100 translate-y-0"
-          leave="transition transform duration-75 "
+          leave="transition transform duration-75"
           leaveFrom="opacity-100 translate-y-0"
           leaveTo="opacity-0 translate-y-full"
+          as="div" // Ensure we render a div instead of a fragment
           className="flex items-center gap-2"
         >
           <div>
@@ -39,7 +41,7 @@ const Title = ({
               title="Batch Selection"
               checked={imageFiles.length === marked.length}
               onChange={(bool) => (bool ? handleMarkAll() : handleUnmarkAll())}
-              className={`grid place-items-center rounded-full border-2 bg-white text-2xl text-accent`}
+              className="grid place-items-center rounded-full border-2 bg-white text-2xl text-accent"
             >
               {({ checked }) => (
                 <>

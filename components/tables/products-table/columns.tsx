@@ -57,6 +57,13 @@ export const columns: ColumnDef<Product>[] = [
     ),
   },
   {
+    accessorKey: "type",
+    header: "Type",
+    cell: ({ row }) => (
+      <div className="w-full max-w-md">{row.original.type}</div>
+    ),
+  },
+  {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (
