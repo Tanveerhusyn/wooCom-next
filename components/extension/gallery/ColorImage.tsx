@@ -132,5 +132,5 @@ const ColorImage = memo((props) => {
     </div>
   );
 });
-Image.displayName = "ColorImage";
+ColorImage.displayName = "ColorImage";
 export default ColorImage;
