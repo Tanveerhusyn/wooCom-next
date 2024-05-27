@@ -317,52 +317,56 @@ export async function fetchProductById(id: string): Promise<SingleProduct> {
   console.log("decodedid", decodedid);
 
   const query = `
-   query GetProduct($productId: ID!) {
-  product(id: $productId, idType: DATABASE_ID) {
-    id
-    name
-    description
-    productCategories {
-      nodes {
-        id
-        name
-      }
-    }
-    image {
-      id
-      sourceUrl
-    }
-    ... on VariableProduct {
+  query GetProduct($productId: ID!) {
+    product(id: $productId, idType: DATABASE_ID) {
       id
       name
-      variations {
+      description
+      productCategories {
         nodes {
           id
           name
-          price
-          attributes {
-            nodes {
-              name
-              value
+        }
+      }
+      image {
+        id
+        sourceUrl
+      }
+      ... on VariableProduct {
+        id
+        name
+        variations {
+          nodes {
+            id
+            name
+            price
+            attributes {
+              nodes {
+                name
+                value
+              }
+            }
+            image {
+              id
+              sourceUrl
             }
           }
-          image {
-            id
+        }
+        price
+        stockStatus
+        galleryImages {
+          nodes {
             sourceUrl
           }
         }
       }
-      price
-      stockStatus
-      galleryImages {
+      allPaColour {
         nodes {
-          id
-          sourceUrl
+          name
         }
       }
     }
   }
-}
   `;
 
   try {

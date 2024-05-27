@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Image from "./Image";
+import ColorImage from "./ColorImage";
 import {
   DndContext,
   DragOverlay,
@@ -24,7 +25,7 @@ import GalleryTitle from "./GalleryTitle";
 import GalleryFooter from "./GalleryFooter";
 import ImageBox from "./ImageBox";
 
-const Gallery = ({ images }) => {
+const Gallery = ({ images, isColor }) => {
   console.log("images", images);
   const [imageFiles, setImageFiles] = useState(generatedImages);
   const [marked, setMarked] = useState([]);
@@ -101,8 +102,10 @@ const Gallery = ({ images }) => {
     <>
       <div className="relative mx-auto max-w-[54rem] rounded-xl border bg-black from-gray-100 from-0% to-gray-200 to-100% shadow-lg">
         {/* title portion */}
+
         <GalleryTitle
           marked={marked}
+          isColor={isColor}
           imageFiles={imageFiles}
           handleMarkAll={handleMarkAll}
           handleUnmarkAll={handleUnmarkAll}
@@ -126,18 +129,31 @@ const Gallery = ({ images }) => {
             <div
               className={`grid grid-cols-2 gap-1 p-4 sm:grid-cols-3 max-h-[900px] overflow-y-auto lg:grid-cols-5 [&>*:not(.aspect-auto)]:aspect-square`}
             >
-              {imageFiles.map((img, i) => (
-                <Image
-                  key={img.id}
-                  image={img}
-                  featured={i === 0}
-                  className=" bg-white"
-                  isMarked={marked.includes(img.id)}
-                  handleMarked={handleMarked}
-                  handleFeatured={handleFeatured}
-                  setImgBoxElm={setImgBoxElm}
-                />
-              ))}
+              {isColor
+                ? imageFiles.map((img, i) => (
+                    <ColorImage
+                      key={img.id}
+                      image={img}
+                      featured={i === 0}
+                      className=" bg-white"
+                      isMarked={marked.includes(img.id)}
+                      handleMarked={handleMarked}
+                      handleFeatured={handleFeatured}
+                      setImgBoxElm={setImgBoxElm}
+                    />
+                  ))
+                : imageFiles.map((img, i) => (
+                    <Image
+                      key={img.id}
+                      image={img}
+                      featured={i === 0}
+                      className=" bg-white"
+                      isMarked={marked.includes(img.id)}
+                      handleMarked={handleMarked}
+                      handleFeatured={handleFeatured}
+                      setImgBoxElm={setImgBoxElm}
+                    />
+                  ))}
 
               {/* floating abstract element to show on drag */}
               <DragOverlay

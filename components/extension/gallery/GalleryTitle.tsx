@@ -4,15 +4,17 @@ import { IoCheckmarkDone, IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 const Title = ({
   marked,
   imageFiles,
+  isColor,
   handleDelete,
   handleMarkAll,
   handleUnmarkAll,
 }) => {
   console.log("Title", marked);
   return (
-    <div className="sticky top-0 z-[1] flex min-h-[3rem] flex-wrap items-center gap-1 bg-black overflow-y-hidden border-b  px-4 py-2 [&_*]:leading-6">
+    <div className="sticky top-0 z-[1] flex min-h-[3rem] flex-wrap items-center  gap-1 bg-black overflow-y-hidden border-b  px-4 py-2 [&_*]:leading-6">
       <div>
-        {!marked.length && <h5>Image Gallery</h5>}
+        {!marked.length && !isColor && <h5>Image Gallery</h5>}
+        {isColor && <h5>{isColor}</h5>}
         {!!marked.length && (
           <h6>
             <IoCheckmarkDone className=" me-2 inline align-text-bottom text-lg text-accent" />

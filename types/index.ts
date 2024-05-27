@@ -167,8 +167,12 @@ export interface SingleProduct {
   stockStatus: string;
   galleryImages: {
     nodes: {
-      id: string;
       sourceUrl: string;
+    }[];
+  };
+  allPaColour: {
+    nodes: {
+      name: string;
     }[];
   };
 }

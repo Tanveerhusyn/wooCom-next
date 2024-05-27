@@ -16,6 +16,7 @@ import { Textarea } from "../ui/textarea";
 import { Product, SingleProduct } from "@/types";
 import FileUploader from "@/components/forms/file-uploader";
 import Gallery from "@/components/extension/gallery/Gallery";
+import SpreadSheet from "@/components/extension/spreadsheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -79,8 +80,15 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
     product?.image.sourceUrl || null,
   );
   const [variantImages, setVariantImages] = useState([]);
+  const [allColors, setAllColors] = useState([]);
   const [selectedSizeImage, setSelectedSizeImage] = useState(null);
   const [files, setFiles] = useState<File[] | null>(null);
+  const [colorImages, setColorImages] = useState([
+    {
+      color: "",
+      images: [],
+    },
+  ]);
   const { data } = useSession();
 
   const [formData, setFormData] = useState({
@@ -119,6 +127,16 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
       if (product?.variations) {
         setVariantImages(product.variations.nodes);
       }
+
+      if (product?.allPaColour) {
+        setAllColors(product.allPaColour.nodes);
+        setColorImages(
+          product.allPaColour.nodes.map((color) => ({
+            color: color.name,
+            images: [],
+          })),
+        );
+      }
     }
   }, [product]);
 
@@ -137,8 +155,8 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
   }, [files]);
 
   const transformImages = (images) => {
-    return images.map((image) => ({
-      id: image.id,
+    return images.map((image, idx) => ({
+      id: image.id || idx,
       src: image.sourceUrl,
       alt: `Image ${image.id}`, // Provide a meaningful alt text, if available
       // Add any other properties you need
@@ -185,6 +203,40 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
     });
   };
 
+  const handleAddToImagesColor = (color, image) => {
+    // [
+    //   {
+    //     color: "Blue",
+    //     images: [],
+    //   },
+    //   {
+    //     color: "Green",
+    //     images: [],
+    //   },
+    //   {
+    //     color: "Yellow",
+    //     images: [],
+    //   },
+    // ];
+    setColorImages((prevColors) => {
+      return prevColors.map((c) => {
+        if (c.color.toLowerCase() === color.name.toLowerCase()) {
+          return {
+            ...c,
+            images: [
+              ...c.images,
+              {
+                id: image.id,
+                src: image.source_url,
+                alt: `Image ${image.id}`,
+              },
+            ],
+          };
+        }
+        return c;
+      });
+    });
+  };
   const handleSaveChanges = async () => {
     //@ts-ignore
     // const result = await uploadImage(files[0], data.user.accessToken);
@@ -321,11 +373,11 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
           <CardContent className="space-y-2 flex flex-col  overflow-y-auto">
             <div className="m-2 p-2 flex">
               <div className="flex flex-col gap-2">
-                <Gallery images={galleryImages} />
-                <div className="relative mx-auto max-w-[54rem] rounded-xl border bg-black from-gray-100 from-0% to-gray-200 to-100% shadow-lg">
+                <Gallery isColor={false} images={galleryImages} />
+                <div className="relative mx-auto  max-w-[54rem] rounded-xl border bg-black from-gray-100 from-0% to-gray-200 to-100% shadow-lg">
                   {/* title portion */}
 
-                  <div className="sticky top-0 z-[1] flex min-h-[3rem] flex-wrap items-center gap-1 bg-black overflow-y-hidden border-b  px-4 py-2 [&_*]:leading-6">
+                  <div className="sticky top-0 z-[1] bg-white/10 flex min-h-[3rem] flex-wrap items-center gap-1 bg-black overflow-y-hidden border-b  px-4 py-2 [&_*]:leading-6">
                     <div>
                       <h5>Size Section</h5>
                     </div>
@@ -343,8 +395,46 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                   </div>
                 </div>
 
+                <div className="relative  mx-auto max-w-[54rem] rounded-xl border bg-black from-gray-100 from-0% to-gray-200 to-100% shadow-lg">
+                  <div className="sticky bg-white/10 top-0 z-[1] flex min-h-[3rem] flex-wrap items-center gap-1 bg-black overflow-y-hidden border-b  px-4 py-2 [&_*]:leading-6">
+                    <div>
+                      <h5>Colors</h5>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 w-[54rem] p-4">
+                    {product.allPaColour &&
+                      product.allPaColour.nodes.map((color, idx) => {
+                        console.log("COLOR", colorImages);
+                        const colorImage = colorImages.find(
+                          (c) =>
+                            c.color.toLowerCase() === color.name.toLowerCase(),
+                        );
+                        return (
+                          <div
+                            key={idx}
+                            className="w-full flex flex-col justify-left items-left"
+                          >
+                            {colorImage?.images.length <= 0 && (
+                              <h5>{color.name}</h5>
+                            )}
+                            {colorImage?.images.length > 0 ? (
+                              <Gallery
+                                isColor={color.name}
+                                images={colorImage.images}
+                              />
+                            ) : (
+                              <span className="flex flex-col justify-start items-start w-full">
+                                <HiPhoto className="h-[200px] w-[200px]  my-4" />
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+
                 <div className="relative mx-auto max-w-[54rem] rounded-xl border bg-black from-gray-100 from-0% to-gray-200 to-100% shadow-lg">
-                  <div className="sticky top-0 z-[1] flex min-h-[3rem] flex-wrap items-center gap-1 bg-black overflow-y-hidden border-b  px-4 py-2 [&_*]:leading-6">
+                  <div className="sticky bg-white/10 top-0 z-[1] flex min-h-[3rem] flex-wrap items-center gap-1 bg-black overflow-y-hidden border-b  px-4 py-2 [&_*]:leading-6">
                     <div>
                       <h5>Variants</h5>
                     </div>
@@ -432,6 +522,40 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                                 </DropdownMenuItem>
                               </DropdownMenuGroup>
                               <DropdownMenuSeparator />
+                              {product?.allPaColour && (
+                                <DropdownMenuGroup>
+                                  <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger className="cursor-pointer">
+                                      <UserPlus className="mr-2 h-4 w-4 " />
+                                      <span className="">Add to Colors</span>
+                                    </DropdownMenuSubTrigger>
+                                    <DropdownMenuPortal className="">
+                                      <DropdownMenuSubContent className="bg-gray-200 text-black">
+                                        {product.allPaColour.nodes.map(
+                                          (color) => (
+                                            <>
+                                              <DropdownMenuItem
+                                                onClick={() =>
+                                                  handleAddToImagesColor(
+                                                    color,
+                                                    image,
+                                                  )
+                                                }
+                                                className="cursor-pointer"
+                                              >
+                                                <Plus className="mr-2 h-4 w-4" />
+                                                <span>{color.name}</span>
+                                              </DropdownMenuItem>
+                                              <DropdownMenuSeparator />
+                                            </>
+                                          ),
+                                        )}
+                                      </DropdownMenuSubContent>
+                                    </DropdownMenuPortal>
+                                  </DropdownMenuSub>
+                                </DropdownMenuGroup>
+                              )}
+                              <DropdownMenuSeparator />
                               {product?.variations && (
                                 <DropdownMenuGroup>
                                   <DropdownMenuSub>
@@ -501,14 +625,18 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
       </TabsContent>
       <TabsContent value="size">
         <div className="grid grid-cols-2">
-          <Gallery
-            images={[
-              {
-                id: selectedSizeImage?.id,
-                src: selectedSizeImage?.source_url,
-              },
-            ]}
-          />
+          {(selectedSizeImage && (
+            <Gallery
+              isColor={""}
+              images={[
+                {
+                  id: selectedSizeImage?.id,
+                  src: selectedSizeImage?.source_url,
+                },
+              ]}
+            />
+          )) || <HiPhoto className="w-[54rem] h-[200px] mx-auto my-4" />}
+          <SpreadSheet />
         </div>
       </TabsContent>
       <TabsContent value="text">
