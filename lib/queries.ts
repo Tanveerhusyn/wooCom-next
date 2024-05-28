@@ -1,4 +1,10 @@
-import { Product, ProductsData, SingleProduct, WordPressMedia } from "../types";
+import {
+  Product,
+  ProductData,
+  ProductsData,
+  SingleProduct,
+  WordPressMedia,
+} from "../types";
 import { Buffer } from "buffer";
 export async function fetchProducts(
   first: number,
@@ -312,61 +318,96 @@ function decodeBase64Id(encodedString) {
   return parts[1];
 }
 
-export async function fetchProductById(id: string): Promise<SingleProduct> {
+export async function fetchProductById(id: string): Promise<ProductData> {
   const decodedid = decodeBase64Id(id);
   console.log("decodedid", decodedid);
 
   const query = `
-  query GetProduct($productId: ID!) {
-    product(id: $productId, idType: DATABASE_ID) {
-      id
-      name
-      description
-      productCategories {
-        nodes {
-          id
-          name
-        }
-      }
-      image {
-        id
-        sourceUrl
-      }
-      ... on VariableProduct {
+    query GetProduct($productId: ID!) {
+      product(id: $productId, idType: DATABASE_ID) {
         id
         name
-        variations {
+        description
+        productCategories {
           nodes {
             id
             name
-            price
-            attributes {
-              nodes {
-                name
-                value
+          }
+        }
+        image {
+          id
+          sourceUrl
+        }
+        ... on VariableProduct {
+          id
+          name
+          variations {
+            nodes {
+              id
+              name
+              price
+              attributes {
+                nodes {
+                  name
+                  value
+                }
+              }
+              image {
+                id
+                sourceUrl
               }
             }
-            image {
-              id
+          }
+          price
+          stockStatus
+          galleryImages {
+            nodes {
               sourceUrl
             }
           }
         }
-        price
-        stockStatus
-        galleryImages {
+        allPaColour {
           nodes {
-            sourceUrl
+            name
+          }
+        }
+        allPaSize {
+          nodes {
+            name
+          }
+        }
+        allPaGender {
+          nodes {
+            name
+          }
+        }
+        allPaCollection {
+          nodes {
+            name
           }
         }
       }
-      allPaColour {
+      globalColors: allPaColour {
+        nodes {
+          name
+        }
+      }
+      globalCollections: allPaCollection {
+        nodes {
+          name
+        }
+      }
+      globalGenders: allPaGender {
+        nodes {
+          name
+        }
+      }
+      globalSizes: allPaSize {
         nodes {
           name
         }
       }
     }
-  }
   `;
 
   try {
@@ -390,7 +431,7 @@ export async function fetchProductById(id: string): Promise<SingleProduct> {
     }
 
     const result: {
-      data: { product: SingleProduct };
+      data: ProductData;
       errors?: Array<{ message: string }>;
     } = await response.json();
 
@@ -398,7 +439,7 @@ export async function fetchProductById(id: string): Promise<SingleProduct> {
       throw new Error(result.errors.map((error) => error.message).join(", "));
     }
 
-    return result.data.product;
+    return result.data;
   } catch (error) {
     console.error("Error fetching product:", error);
     return null;

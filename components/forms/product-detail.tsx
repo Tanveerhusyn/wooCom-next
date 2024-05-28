@@ -13,7 +13,7 @@ import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
-import { Product, SingleProduct } from "@/types";
+import { Product, ProductData } from "@/types";
 import FileUploader from "@/components/forms/file-uploader";
 import Gallery from "@/components/extension/gallery/Gallery";
 import SpreadSheet from "@/components/extension/spreadsheet";
@@ -62,6 +62,17 @@ import {
 import Sizes from "../extension/sizes";
 import TextForm from "../extension/textForm";
 import { ScrollArea } from "../ui/scroll-area";
+
+import {
+  SelectValue,
+  SelectTrigger,
+  SelectLabel,
+  SelectItem,
+  SelectGroup,
+  SelectContent,
+  Select,
+} from "@/components/ui/select";
+
 import {
   getWordPressMedia,
   updateProductImage,
@@ -73,15 +84,20 @@ import { HiPhoto } from "react-icons/hi2";
 import { HamburgerMenuIcon, SizeIcon } from "@radix-ui/react-icons";
 import { Badge } from "../ui/badge";
 
-export default function ProductDetail({ product }: { product: SingleProduct }) {
+export default function ProductDetail({ product }: { product: ProductData }) {
   const [images, setImages] = useState([]);
   const [galleryImages, setGalleryImages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(
-    product?.image.sourceUrl || null,
+    product?.product.image.sourceUrl || null,
   );
   const [variantImages, setVariantImages] = useState([]);
   const [allColors, setAllColors] = useState([]);
   const [selectedSizeImage, setSelectedSizeImage] = useState(null);
+  const [selectOptionOne, setSelectOptionOne] = useState("Colour");
+  const [selectOptionTwo, setSelectOptionTwo] = useState("Size");
+  const [inputValueOne, setInputValueOne] = useState<string>("");
+  const [inputValueTwo, setInputValueTwo] = useState<string>("");
+
   const [files, setFiles] = useState<File[] | null>(null);
   const [colorImages, setColorImages] = useState([
     {
@@ -89,6 +105,13 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
       images: [],
     },
   ]);
+
+  const options = ["Collection", "Gender", "Colour", "Size"];
+
+  const filteredOptionsOne = options.filter(
+    (option) => option !== selectOptionTwo,
+  );
+
   const { data } = useSession();
 
   const [formData, setFormData] = useState({
@@ -103,35 +126,35 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
 
   React.useEffect(() => {
     if (product) {
-      if (product.galleryImages) {
-        const gImages = transformImages(product.galleryImages.nodes);
+      if (product?.product?.galleryImages) {
+        const gImages = transformImages(product?.product?.galleryImages.nodes);
         console.log("MEDIA", gImages);
         setGalleryImages([
           {
-            id: product.image.id,
-            src: product.image.sourceUrl,
-            alt: `Image ${product.image.id}`,
+            id: product?.product?.image.id,
+            src: product?.product?.image.sourceUrl,
+            alt: `Image ${product?.product?.image.id}`,
           },
           ...gImages,
         ]);
       } else {
         setGalleryImages([
           {
-            id: product.image.id,
-            src: product.image.sourceUrl,
-            alt: `Image ${product.image.id}`,
+            id: product?.product?.image.id,
+            src: product?.product?.image.sourceUrl,
+            alt: `Image ${product?.product?.image.id}`,
           },
         ]);
       }
 
-      if (product?.variations) {
-        setVariantImages(product.variations.nodes);
+      if (product?.product.variations) {
+        setVariantImages(product?.product?.variations.nodes);
       }
 
-      if (product?.allPaColour) {
-        setAllColors(product.allPaColour.nodes);
+      if (product?.product.allPaColour) {
+        setAllColors(product?.product?.allPaColour.nodes);
         setColorImages(
-          product.allPaColour.nodes.map((color) => ({
+          product?.product?.allPaColour.nodes.map((color) => ({
             color: color.name,
             images: [],
           })),
@@ -163,6 +186,60 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
     }));
   };
 
+  const getExistingValues = (option: string) => {
+    switch (option) {
+      case "Collection":
+        return (
+          product?.product?.allPaCollection?.nodes.map((item) => item.name) ||
+          []
+        );
+      case "Gender":
+        return (
+          product?.product?.allPaGender?.nodes.map((item) => item.name) || []
+        );
+      case "Colour":
+        return (
+          product?.product?.allPaColour?.nodes.map((item) => item.name) || []
+        );
+      case "Size":
+        return (
+          product?.product?.allPaSize?.nodes.map((item) => item.name) || []
+        );
+      default:
+        return [];
+    }
+  };
+
+  const renderSelectContent = (option: string) => {
+    switch (option) {
+      case "Collection":
+        return product.globalCollections.nodes.map((item, idx) => (
+          <SelectItem key={idx} value={item.name}>
+            {item.name}
+          </SelectItem>
+        ));
+      case "Gender":
+        return product.globalGenders.nodes.map((item, idx) => (
+          <SelectItem key={idx} value={item.name}>
+            {item.name}
+          </SelectItem>
+        ));
+      case "Colour":
+        return product.globalColors.nodes.map((item, idx) => (
+          <SelectItem key={idx} value={item.name}>
+            {item.name}
+          </SelectItem>
+        ));
+      case "Size":
+        return product.globalSizes.nodes.map((item, idx) => (
+          <SelectItem key={idx} value={item.name}>
+            {item.name}
+          </SelectItem>
+        ));
+      default:
+        return null;
+    }
+  };
   React.useEffect(() => {
     const fetchMedia = async () => {
       const media = await getWordPressMedia();
@@ -203,6 +280,9 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
     });
   };
 
+  const filteredOptionsTwo = options.filter(
+    (option) => option !== selectOptionOne,
+  );
   const handleAddToImagesColor = (color, image) => {
     // [
     //   {
@@ -246,13 +326,25 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
     // }
 
     const result = await updateProductImage(
-      product.id,
-      product.image.id,
+      product?.product?.id,
+      product?.product?.image.id,
       data.user.accessToken,
     );
     console.log("IMage UPdate", result);
     if (result) {
       console.log("Image updated successfully");
+    }
+  };
+
+  const handleValueChange = (option: string, value: string) => {
+    switch (option) {
+      case "Collection":
+      case "Gender":
+      case "Colour":
+      case "Size":
+        return value;
+      default:
+        return "";
     }
   };
   return (
@@ -268,7 +360,7 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
         <Card className="flex justify-between items-start p-4">
           <div className="flex flex-col justify-center items-start w-[60%] bg-white/10 shadow-md rounded-lg p-4">
             <CardHeader>
-              <CardTitle>{product?.name}</CardTitle>
+              <CardTitle>{product?.product.name}</CardTitle>
               <CardDescription>
                 View and edit the overview details for this item.
               </CardDescription>
@@ -282,16 +374,16 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                 }).map((_, index) => (
                   <SliderMainItem key={index} className="bg-transparent">
                     <img
-                      src={product.image.sourceUrl}
-                      alt={product?.name}
+                      src={product?.product?.image.sourceUrl}
+                      alt={product?.product.name}
                       className="w-full h-full object-cover rounded-lg"
                     />
                   </SliderMainItem>
                 ))}
               </CarouselMainContainer>
-              {product?.variations && (
+              {product?.product.variations && (
                 <CarouselThumbsContainer>
-                  {product?.variations.nodes.map((_, index) => (
+                  {product?.product.variations.nodes.map((_, index) => (
                     <SliderThumbItem
                       key={index}
                       index={index}
@@ -299,8 +391,8 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                     >
                       <div className="outline outline-1 outline-border size-full flex items-center justify-center rounded-xl bg-background">
                         <img
-                          src={product.image.sourceUrl}
-                          alt={product?.name}
+                          src={product?.product?.image.sourceUrl}
+                          alt={product?.product.name}
                           className="w-[100px] h-[80px] object-cover rounded-lg"
                         />
                       </div>{" "}
@@ -317,7 +409,7 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                   Product Name
                 </dt>
                 <dd className="text-lg text-white font-normal">
-                  {product.name}
+                  {product?.product?.name}
                 </dd>
               </div>
               <div className="flex flex-col py-3">
@@ -326,7 +418,9 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                 </dt>
                 <dd
                   className="text-lg text-white font-normal"
-                  dangerouslySetInnerHTML={{ __html: product.description }}
+                  dangerouslySetInnerHTML={{
+                    __html: product?.product?.description,
+                  }}
                 ></dd>
               </div>
               <div className="flex flex-col pt-3">
@@ -334,14 +428,14 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                   Price
                 </dt>
                 <dd className="text-lg text-white font-normal">
-                  {product.price}
+                  {product?.product?.price}
                 </dd>
               </div>
               <div className="flex flex-col pt-3">
                 <dt className="mb-1 text-gray-500 md:text-lg dark:text-gray-400">
                   Category
                 </dt>
-                {product.productCategories.nodes.map((cat, idx) => (
+                {product?.product?.productCategories.nodes.map((cat, idx) => (
                   <Badge key={idx} className="max-w-[fit-content]">
                     {cat.name}
                   </Badge>
@@ -354,7 +448,7 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                   Status
                 </dt>
                 <dd className="text-lg font-normal text-white">
-                  {product.stockStatus}
+                  {product?.product?.stockStatus}
                 </dd>
               </div>
             </dl>
@@ -402,8 +496,8 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 w-[54rem] p-4">
-                    {product.allPaColour &&
-                      product.allPaColour.nodes.map((color, idx) => {
+                    {product?.product?.allPaColour &&
+                      product?.product?.allPaColour.nodes.map((color, idx) => {
                         console.log("COLOR", colorImages);
                         const colorImage = colorImages.find(
                           (c) =>
@@ -440,7 +534,7 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                     </div>
                   </div>
                   <div className="grid grid-cols-3 w-[54rem] p-4">
-                    {product.variations &&
+                    {product?.product?.variations &&
                       variantImages.map((variation, idx) => {
                         console.log("VARIATION", variation);
                         return (
@@ -522,7 +616,7 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                                 </DropdownMenuItem>
                               </DropdownMenuGroup>
                               <DropdownMenuSeparator />
-                              {product?.allPaColour && (
+                              {product?.product.allPaColour && (
                                 <DropdownMenuGroup>
                                   <DropdownMenuSub>
                                     <DropdownMenuSubTrigger className="cursor-pointer">
@@ -531,7 +625,7 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                                     </DropdownMenuSubTrigger>
                                     <DropdownMenuPortal className="">
                                       <DropdownMenuSubContent className="bg-gray-200 text-black">
-                                        {product.allPaColour.nodes.map(
+                                        {product?.product?.allPaColour.nodes.map(
                                           (color) => (
                                             <>
                                               <DropdownMenuItem
@@ -556,7 +650,7 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                                 </DropdownMenuGroup>
                               )}
                               <DropdownMenuSeparator />
-                              {product?.variations && (
+                              {product?.product.variations && (
                                 <DropdownMenuGroup>
                                   <DropdownMenuSub>
                                     <DropdownMenuSubTrigger className="cursor-pointer">
@@ -565,7 +659,7 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
                                     </DropdownMenuSubTrigger>
                                     <DropdownMenuPortal className="">
                                       <DropdownMenuSubContent className="bg-gray-200 text-black">
-                                        {product.variations.nodes.map(
+                                        {product?.product?.variations.nodes.map(
                                           (variation) => (
                                             <>
                                               <DropdownMenuItem
@@ -642,9 +736,95 @@ export default function ProductDetail({ product }: { product: SingleProduct }) {
       <TabsContent value="text">
         <TextForm />
       </TabsContent>
-      <TabsContent value="attributes">
-        {/* <Sizes /> */}
-        <Gallery images={galleryImages} />
+      <TabsContent value="attributes" className="max-w-[54rem] p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center w-full max-w-[300px]">
+            <Label htmlFor="global-dropdown" className="w-[50%]">
+              {selectOptionOne || "Select Option"}
+            </Label>
+            <Select onValueChange={(value) => setSelectOptionOne(value)}>
+              <SelectTrigger className="w-[50%]">
+                <SelectValue placeholder="Select an option" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Options</SelectLabel>
+                  {filteredOptionsOne.map((option, idx) => (
+                    <SelectItem key={idx} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          {selectOptionOne &&
+            getExistingValues(selectOptionOne).map((value, idx) => (
+              <div key={idx} className="space-y-2">
+                <Input
+                  id={`input-${selectOptionOne}-${idx}`}
+                  value={value}
+                  placeholder={value}
+                />
+                <Select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={`Select ${selectOptionOne}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {renderSelectContent(selectOptionOne)}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+        </div>
+        <div className="flex items-center justify-between my-4">
+          <div className="flex items-center w-full max-w-[300px]">
+            <Label htmlFor="global-dropdown" className="w-[50%]">
+              {selectOptionTwo || "Select Option"}
+            </Label>
+            <Select onValueChange={(value) => setSelectOptionTwo(value)}>
+              <SelectTrigger className="w-[50%]">
+                <SelectValue placeholder="Select an option" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Options</SelectLabel>
+                  {filteredOptionsTwo.map((option, idx) => (
+                    <SelectItem key={idx} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-4 mt-4">
+          {selectOptionTwo &&
+            getExistingValues(selectOptionTwo).map((value, idx) => (
+              <div key={idx} className="space-y-2">
+                <Input
+                  id={`input-${selectOptionTwo}-${idx}`}
+                  value={value}
+                  placeholder={value}
+                />
+                <Select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={`Select ${selectOptionTwo}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {renderSelectContent(selectOptionTwo)}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+        </div>
       </TabsContent>
     </Tabs>
   );

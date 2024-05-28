@@ -132,7 +132,7 @@ export interface WordPressMedia {
   source_url: string;
 }
 
-export interface SingleProduct {
+interface SingleProduct {
   id: string;
   name: string;
   description: string;
@@ -146,7 +146,7 @@ export interface SingleProduct {
     id: string;
     sourceUrl: string;
   };
-  variations: {
+  variations?: {
     nodes: {
       id: string;
       name: string;
@@ -175,6 +175,52 @@ export interface SingleProduct {
       name: string;
     }[];
   };
+  allPaSize: {
+    nodes: {
+      name: string;
+    }[];
+  };
+  allPaGender: {
+    nodes: {
+      name: string;
+    }[];
+  };
+  allPaCollection: {
+    nodes: {
+      name: string;
+    }[];
+  };
+}
+
+interface GlobalAttributes {
+  globalColors: {
+    nodes: {
+      name: string;
+    }[];
+  };
+  globalCollections: {
+    nodes: {
+      name: string;
+    }[];
+  };
+  globalGenders: {
+    nodes: {
+      name: string;
+    }[];
+  };
+  globalSizes: {
+    nodes: {
+      name: string;
+    }[];
+  };
+}
+
+export interface ProductData {
+  product: SingleProduct;
+  globalColors: GlobalAttributes["globalColors"];
+  globalCollections: GlobalAttributes["globalCollections"];
+  globalGenders: GlobalAttributes["globalGenders"];
+  globalSizes: GlobalAttributes["globalSizes"];
 }
 
 export interface NavItemWithChildren extends NavItem {
