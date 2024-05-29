@@ -142,6 +142,12 @@ interface SingleProduct {
       name: string;
     }[];
   };
+  productTags: {
+    nodes: {
+      id: string;
+      name: string;
+    }[];
+  };
   image: {
     id: string;
     sourceUrl: string;
@@ -190,6 +196,15 @@ interface SingleProduct {
       name: string;
     }[];
   };
+  seo: {
+    title: string;
+    metaDesc: string;
+    breadcrumbs: {
+      text: string;
+      url: string;
+    }[];
+  };
+  slug: string;
 }
 
 interface GlobalAttributes {

@@ -16,6 +16,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import GoogleSignInButton from "../github-auth-button";
+import { Loader2 } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Enter a valid email address" }),
@@ -40,12 +42,17 @@ export default function UserAuthForm() {
   });
 
   const onSubmit = async (data: UserFormValue) => {
-    signIn("credentials", {
+    setLoading(true);
+    const result = await signIn("credentials", {
       email: data.email,
       password: data.password,
 
       callbackUrl: callbackUrl ?? "/dashboard",
     });
+
+    if (result) {
+      setLoading(false);
+    }
   };
 
   return (
@@ -93,7 +100,7 @@ export default function UserAuthForm() {
             )}
           />
           <Button disabled={loading} className="ml-auto w-full" type="submit">
-            Continue With Email
+            {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : "Sign In"}
           </Button>
         </form>
       </Form>

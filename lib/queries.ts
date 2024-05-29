@@ -324,90 +324,105 @@ export async function fetchProductById(id: string): Promise<ProductData> {
 
   const query = `
     query GetProduct($productId: ID!) {
-      product(id: $productId, idType: DATABASE_ID) {
+  product(id: $productId, idType: DATABASE_ID) {
+    id
+    name
+    description
+    productCategories {
+      nodes {
         id
         name
-        description
-        productCategories {
-          nodes {
-            id
-            name
-          }
-        }
-        image {
-          id
-          sourceUrl
-        }
-        ... on VariableProduct {
+      }
+    }
+    productTags {
+      nodes {
+        id
+        name
+      }
+    }
+    image {
+      id
+      sourceUrl
+    }
+    ... on VariableProduct {
+      id
+      name
+      variations {
+        nodes {
           id
           name
-          variations {
-            nodes {
-              id
-              name
-              price
-              attributes {
-                nodes {
-                  name
-                  value
-                }
-              }
-              image {
-                id
-                sourceUrl
-              }
-            }
-          }
           price
-          stockStatus
-          galleryImages {
+          attributes {
             nodes {
-              sourceUrl
+              name
+              value
             }
           }
-        }
-        allPaColour {
-          nodes {
-            name
-          }
-        }
-        allPaSize {
-          nodes {
-            name
-          }
-        }
-        allPaGender {
-          nodes {
-            name
-          }
-        }
-        allPaCollection {
-          nodes {
-            name
+          image {
+            id
+            sourceUrl
           }
         }
       }
-      globalColors: allPaColour {
+      price
+      stockStatus
+      galleryImages {
         nodes {
-          name
-        }
-      }
-      globalCollections: allPaCollection {
-        nodes {
-          name
-        }
-      }
-      globalGenders: allPaGender {
-        nodes {
-          name
-        }
-      }
-      globalSizes: allPaSize {
-        nodes {
-          name
+          sourceUrl
         }
       }
     }
+    allPaColour {
+      nodes {
+        name
+      }
+    }
+    allPaSize {
+      nodes {
+        name
+      }
+    }
+    allPaGender {
+      nodes {
+        name
+      }
+    }
+    allPaCollection {
+      nodes {
+        name
+      }
+    }
+    seo {
+      title
+      metaDesc
+      breadcrumbs {
+        text
+        url
+      }
+    }
+    slug
+  }
+  globalColors: allPaColour {
+    nodes {
+      name
+    }
+  }
+  globalCollections: allPaCollection {
+    nodes {
+      name
+    }
+  }
+  globalGenders: allPaGender {
+    nodes {
+      name
+    }
+  }
+  globalSizes: allPaSize {
+    nodes {
+      name
+    }
+  }
+}
   `;
 
   try {
@@ -431,7 +446,7 @@ export async function fetchProductById(id: string): Promise<ProductData> {
     }
 
     const result: {
-      data: ProductData;
+      data: any;
       errors?: Array<{ message: string }>;
     } = await response.json();
 
@@ -446,6 +461,204 @@ export async function fetchProductById(id: string): Promise<ProductData> {
   }
 }
 
+export async function updateProduct(
+  id: string,
+  title: string,
+  content: string,
+  slug: string,
+  token: string,
+): Promise<ProductData> {
+  const query = `
+    mutation UpdateProduct($id: ID!, $title: String!, $content: String!, $slug: String!) {
+      updateProduct(input: { id: $id, title: $title, content: $content, slug: $slug }) {
+        product {
+          id
+          title
+          content
+          slug
+          seo {
+            title
+            metaDesc
+          }
+           
+        }
+      }
+    }
+  `;
+
+  const decodedId = decodeBase64Id(id);
+
+  const variables = {
+    id: decodedId,
+    title,
+    content,
+    slug,
+  };
+
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+      cache: "no-cache",
+      next: {
+        revalidate: 0,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    const result: {
+      data: any;
+      errors?: Array<{ message: string }>;
+    } = await response.json();
+    console.log("Update Product", result);
+
+    if (result.errors) {
+      throw new Error(result.errors.map((error) => error.message).join(", "));
+    }
+
+    return result.data.updateProduct.product;
+  } catch (error) {
+    console.error("Error updating product:", error);
+    return null;
+  }
+}
+
+export async function updateSeoFields(
+  id: string,
+  seoTitle: string,
+  seoMetaDesc: string,
+): Promise<{ success: boolean; message: string }> {
+  const query = `
+    mutation UpdateSeoFields($id: ID!, $seoTitle: String!, $seoMetaDesc: String!) {
+      updateSeoFields(input: { id: $id, seoTitle: $seoTitle, seoMetaDesc: $seoMetaDesc }) {
+        success
+        message
+      }
+    }
+  `;
+
+  const decodedId = decodeBase64Id(id);
+  const variables = {
+    id: decodedId,
+    seoTitle,
+    seoMetaDesc,
+  };
+
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+      cache: "no-cache",
+      next: {
+        revalidate: 0,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    const result: {
+      data: any;
+      errors?: Array<{ message: string }>;
+    } = await response.json();
+
+    console.log("Update SEO", result);
+    if (result.errors) {
+      throw new Error(result.errors.map((error) => error.message).join(", "));
+    }
+
+    return result.data.updateSeoFields;
+  } catch (error) {
+    console.error("Error updating SEO fields:", error);
+    return null;
+  }
+}
+
+export async function updateProductMetaData(
+  id: string,
+  metaData: { key: string; value: string },
+): Promise<ProductData> {
+  const decodedId = decodeBase64Id(id);
+  console.log("decodedId", decodedId);
+
+  const mutation = `
+    mutation UpdateProduct($input: UpdateProductInput!) {
+      updateProduct(input: $input) {
+        product {
+          id
+          name
+          metaData {
+            key
+            value
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: mutation,
+        variables: {
+          input: {
+            id: decodedId,
+            metaData: [
+              {
+                key: metaData.key,
+                value: metaData.value,
+              },
+            ],
+          },
+        },
+      }),
+      cache: "no-cache",
+      next: {
+        revalidate: 0,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    const result: {
+      data: ProductData;
+      errors?: Array<{ message: string }>;
+    } = await response.json();
+
+    console.log("result", result);
+    if (result.errors) {
+      throw new Error(result.errors.map((error) => error.message).join(", "));
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error("Error updating product:", error);
+    return null;
+  }
+}
 export async function getWordPressMedia(): Promise<WordPressMedia[]> {
   try {
     // fetch wordpress media using Rest API

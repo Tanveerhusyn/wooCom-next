@@ -83,6 +83,7 @@ import { Plus, Trash, Trash2 } from "lucide-react";
 import { HiPhoto } from "react-icons/hi2";
 import { HamburgerMenuIcon, SizeIcon } from "@radix-ui/react-icons";
 import { Badge } from "../ui/badge";
+import toast from "react-hot-toast";
 
 export default function ProductDetail({ product }: { product: ProductData }) {
   const [images, setImages] = useState([]);
@@ -97,6 +98,7 @@ export default function ProductDetail({ product }: { product: ProductData }) {
   const [selectOptionTwo, setSelectOptionTwo] = useState("Size");
   const [inputValueOne, setInputValueOne] = useState<string>("");
   const [inputValueTwo, setInputValueTwo] = useState<string>("");
+  const [first, setFirst] = useState<string>("");
 
   const [files, setFiles] = useState<File[] | null>(null);
   const [colorImages, setColorImages] = useState([
@@ -105,8 +107,8 @@ export default function ProductDetail({ product }: { product: ProductData }) {
       images: [],
     },
   ]);
-
-  const options = ["Collection", "Gender", "Colour", "Size"];
+  // "Collection", "Gender",
+  const options = ["Colour", "Size"];
 
   const filteredOptionsOne = options.filter(
     (option) => option !== selectOptionTwo,
@@ -188,15 +190,15 @@ export default function ProductDetail({ product }: { product: ProductData }) {
 
   const getExistingValues = (option: string) => {
     switch (option) {
-      case "Collection":
-        return (
-          product?.product?.allPaCollection?.nodes.map((item) => item.name) ||
-          []
-        );
-      case "Gender":
-        return (
-          product?.product?.allPaGender?.nodes.map((item) => item.name) || []
-        );
+      // case "Collection":
+      //   return (
+      //     product?.product?.allPaCollection?.nodes.map((item) => item.name) ||
+      //     []
+      //   );
+      // case "Gender":
+      //   return (
+      //     product?.product?.allPaGender?.nodes.map((item) => item.name) || []
+      //   );
       case "Colour":
         return (
           product?.product?.allPaColour?.nodes.map((item) => item.name) || []
@@ -325,14 +327,20 @@ export default function ProductDetail({ product }: { product: ProductData }) {
     //   console.log("Image uploaded successfully");
     // }
 
-    const result = await updateProductImage(
-      product?.product?.id,
-      product?.product?.image.id,
-      data.user.accessToken,
-    );
-    console.log("IMage UPdate", result);
-    if (result) {
-      console.log("Image updated successfully");
+    try {
+      const result = await updateProductImage(
+        product?.product?.id,
+        product?.product?.image.id,
+        first,
+        data.user.accessToken,
+      );
+
+      if (result) {
+        toast.success("Image updated successfully");
+      }
+    } catch (err) {
+      toast.error("Error updating image");
+      console.log("Error updating image", err);
     }
   };
 
@@ -435,11 +443,13 @@ export default function ProductDetail({ product }: { product: ProductData }) {
                 <dt className="mb-1 text-gray-500 md:text-lg dark:text-gray-400">
                   Category
                 </dt>
-                {product?.product?.productCategories.nodes.map((cat, idx) => (
-                  <Badge key={idx} className="max-w-[fit-content]">
-                    {cat.name}
-                  </Badge>
-                ))}
+                <div className="grid grid-cols-2 gap-2">
+                  {product?.product?.productCategories.nodes.map((cat, idx) => (
+                    <Badge key={idx} className="max-w-[fit-content]">
+                      {cat.name}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </dl>
             <dl className="max-w-md text-gray-900 divide-y divide-gray-200 dark:text-white dark:divide-gray-700">
@@ -467,7 +477,12 @@ export default function ProductDetail({ product }: { product: ProductData }) {
           <CardContent className="space-y-2 flex flex-col  overflow-y-auto">
             <div className="m-2 p-2 flex">
               <div className="flex flex-col gap-2">
-                <Gallery isColor={false} images={galleryImages} />
+                <Gallery
+                  isColor={false}
+                  images={galleryImages}
+                  first={first}
+                  setFirst={setFirst}
+                />
                 <div className="relative mx-auto  max-w-[54rem] rounded-xl border bg-black from-gray-100 from-0% to-gray-200 to-100% shadow-lg">
                   {/* title portion */}
 
@@ -498,7 +513,6 @@ export default function ProductDetail({ product }: { product: ProductData }) {
                   <div className="flex flex-col gap-2 w-[54rem] p-4">
                     {product?.product?.allPaColour &&
                       product?.product?.allPaColour.nodes.map((color, idx) => {
-                        console.log("COLOR", colorImages);
                         const colorImage = colorImages.find(
                           (c) =>
                             c.color.toLowerCase() === color.name.toLowerCase(),
@@ -513,6 +527,8 @@ export default function ProductDetail({ product }: { product: ProductData }) {
                             )}
                             {colorImage?.images.length > 0 ? (
                               <Gallery
+                                first={null}
+                                setFirst={null}
                                 isColor={color.name}
                                 images={colorImage.images}
                               />
@@ -527,7 +543,7 @@ export default function ProductDetail({ product }: { product: ProductData }) {
                   </div>
                 </div>
 
-                <div className="relative mx-auto max-w-[54rem] rounded-xl border bg-black from-gray-100 from-0% to-gray-200 to-100% shadow-lg">
+                {/* <div className="relative mx-auto max-w-[54rem] rounded-xl border bg-black from-gray-100 from-0% to-gray-200 to-100% shadow-lg">
                   <div className="sticky bg-white/10 top-0 z-[1] flex min-h-[3rem] flex-wrap items-center gap-1 bg-black overflow-y-hidden border-b  px-4 py-2 [&_*]:leading-6">
                     <div>
                       <h5>Variants</h5>
@@ -549,7 +565,7 @@ export default function ProductDetail({ product }: { product: ProductData }) {
                         );
                       })}
                   </div>
-                </div>
+                </div> */}
               </div>
 
               <div className="flex flex-col">
@@ -649,7 +665,7 @@ export default function ProductDetail({ product }: { product: ProductData }) {
                                   </DropdownMenuSub>
                                 </DropdownMenuGroup>
                               )}
-                              <DropdownMenuSeparator />
+                              {/* <DropdownMenuSeparator />
                               {product?.product.variations && (
                                 <DropdownMenuGroup>
                                   <DropdownMenuSub>
@@ -682,7 +698,7 @@ export default function ProductDetail({ product }: { product: ProductData }) {
                                     </DropdownMenuPortal>
                                   </DropdownMenuSub>
                                 </DropdownMenuGroup>
-                              )}
+                              )} */}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -717,10 +733,12 @@ export default function ProductDetail({ product }: { product: ProductData }) {
           </CardContent>
         </Card>
       </TabsContent>
-      <TabsContent value="size">
-        <div className="grid grid-cols-2">
+      <TabsContent value="size" className="py-10 h-[800px] overflow-y-auto">
+        <div className="grid grid-cols-2 ">
           {(selectedSizeImage && (
             <Gallery
+              first={null}
+              setFirst={null}
               isColor={""}
               images={[
                 {
@@ -730,11 +748,11 @@ export default function ProductDetail({ product }: { product: ProductData }) {
               ]}
             />
           )) || <HiPhoto className="w-[54rem] h-[200px] mx-auto my-4" />}
-          <SpreadSheet />
+          <SpreadSheet productId={product?.product?.id} />
         </div>
       </TabsContent>
-      <TabsContent value="text">
-        <TextForm />
+      <TabsContent value="text" className="py-10 h-[800px] overflow-y-auto">
+        <TextForm product={product.product} />
       </TabsContent>
       <TabsContent value="attributes" className="max-w-[54rem] p-4">
         <div className="flex items-center justify-between mb-4">

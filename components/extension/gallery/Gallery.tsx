@@ -25,14 +25,20 @@ import GalleryTitle from "./GalleryTitle";
 import GalleryFooter from "./GalleryFooter";
 import ImageBox from "./ImageBox";
 
-const Gallery = ({ images, isColor }) => {
-  console.log("images", images);
+const Gallery = ({ images, isColor, first, setFirst }) => {
   const [imageFiles, setImageFiles] = useState(generatedImages);
   const [marked, setMarked] = useState([]);
 
   useEffect(() => {
     if (images) setImageFiles(images);
   }, [images]);
+
+  useEffect(() => {
+    if (first != null && imageFiles.length) {
+      setFirst(imageFiles[0].src);
+    }
+  }, [imageFiles]);
+
   const [activeElm, setActiveElm] = useState(null);
   // for image box
   const [imgBoxElm, setImgBoxElm] = useState(null);

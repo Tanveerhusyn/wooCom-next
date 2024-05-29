@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import Spreadsheet, { CellBase, DataEditor, Matrix } from "react-spreadsheet";
 import { Button } from "../ui/button";
+import { updateProductMetaData } from "@/lib/queries";
+import toast from "react-hot-toast";
 
 const bodyParts = [
   "Neck Girth",
@@ -56,7 +58,7 @@ const BodyPartEditor = ({ cell, onChange }) => {
   );
 };
 
-const App = () => {
+const App = ({ productId }) => {
   const [headerSelectValue, setHeaderSelectValue] = useState("");
 
   const [data, setData] = useState<Matrix<CellBase>>([
@@ -231,50 +233,72 @@ const App = () => {
     }
   };
 
+  const handleStoreData = () => {
+    const uniqueKey = `spreadsheetData-${Date.now()}`;
+    const stringifiedData = JSON.stringify(data);
+    const meta = {
+      key: uniqueKey,
+      value: stringifiedData,
+    };
+
+    const result = updateProductMetaData(productId, meta);
+    console.log(result);
+    if (result) {
+      toast.success("Data saved successfully.");
+    } else {
+      toast.error("Something went wrong. Please try again.");
+    }
+  };
+
   const [deleteRowIndex, setDeleteRowIndex] = useState(0);
   const [deleteColumnIndex, setDeleteColumnIndex] = useState(0);
 
   return (
-    <div className="w-full flex flex-col h-full">
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <Button onClick={addRow} variant="outline">
-          Add Row
-        </Button>
-        <Button onClick={addColumn} variant="outline">
-          Add Column
-        </Button>
-        <div className="flex items-center space-x-2">
-          <input
-            type="number"
-            value={deleteRowIndex}
-            onChange={(e) => setDeleteRowIndex(parseInt(e.target.value))}
-            className="px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-            placeholder="Row Index"
-          />
-          <Button
-            onClick={() => deleteRow(deleteRowIndex)}
-            variant="destructive"
-          >
-            Delete Row
+    <div>
+      <div className="w-full flex flex-col h-full">
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <Button onClick={addRow} variant="outline">
+            Add Row
+          </Button>
+          <Button onClick={addColumn} variant="outline">
+            Add Column
+          </Button>
+          <div className="flex items-center space-x-2">
+            <input
+              type="number"
+              value={deleteRowIndex}
+              onChange={(e) => setDeleteRowIndex(parseInt(e.target.value))}
+              className="px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+              placeholder="Row Index"
+            />
+            <Button
+              onClick={() => deleteRow(deleteRowIndex)}
+              variant="destructive"
+            >
+              Delete Row
+            </Button>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="number"
+              value={deleteColumnIndex}
+              onChange={(e) => setDeleteColumnIndex(parseInt(e.target.value))}
+              className="px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+              placeholder="Column Index"
+            />
+            <Button
+              onClick={() => deleteColumn(deleteColumnIndex)}
+              variant="destructive"
+            >
+              Delete Column
+            </Button>
+          </div>
+          <Button onClick={handleStoreData} className="w-40">
+            Save Changes
           </Button>
         </div>
-        <div className="flex items-center space-x-2">
-          <input
-            type="number"
-            value={deleteColumnIndex}
-            onChange={(e) => setDeleteColumnIndex(parseInt(e.target.value))}
-            className="px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-            placeholder="Column Index"
-          />
-          <Button
-            onClick={() => deleteColumn(deleteColumnIndex)}
-            variant="destructive"
-          >
-            Delete Column
-          </Button>
-        </div>
+        <Spreadsheet data={data} onChange={setData} className="" darkMode />
       </div>
-      <Spreadsheet data={data} onChange={setData} className="" darkMode />
     </div>
   );
 };
