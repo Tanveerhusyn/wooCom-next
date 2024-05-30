@@ -36,6 +36,8 @@ export default function TextForm({ product, user }) {
   const [productDescription, setProductDescription] = useState("");
   const { data } = useSession();
 
+  console.log("USER", data, user);
+
   useEffect(() => {
     const fetchCat = async () => {
       const result = await getAllProductCategories(user.accessToken);
