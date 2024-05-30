@@ -3,9 +3,13 @@ import { ProductForm } from "@/components/forms/product-form";
 import ProductDetail from "@/components/forms/product-detail";
 import React from "react";
 import { fetchProductById } from "@/lib/queries";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 export default async function Page({ params }) {
-  console.log("searchParams", params);
+  const user = getServerSession(authOptions);
+
+  console.log("USER FROM SESSION", user);
 
   const breadcrumbItems = [
     { title: "Products", link: "/dashboard/products" },
@@ -32,7 +36,7 @@ export default async function Page({ params }) {
         initialData={null}
         key={null}
       /> */}
-      <ProductDetail product={product} />
+      <ProductDetail product={product} sessionUser={user} />
     </div>
   );
 }

@@ -22,7 +22,7 @@ import { Button } from "../ui/button";
 import { useSession } from "next-auth/react";
 import { Loader2 } from "lucide-react";
 
-export default function TextForm({ product, user }) {
+export default function TextForm({ product, user, sessionUser }) {
   console.log(product);
   const [tags, setTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
@@ -36,7 +36,7 @@ export default function TextForm({ product, user }) {
   const [productDescription, setProductDescription] = useState("");
   const { data } = useSession();
 
-  console.log("USER", data, user);
+  console.log("USER", data, user, sessionUser);
 
   useEffect(() => {
     const fetchCat = async () => {

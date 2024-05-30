@@ -87,7 +87,13 @@ import { HamburgerMenuIcon, SizeIcon } from "@radix-ui/react-icons";
 import { Badge } from "../ui/badge";
 import toast from "react-hot-toast";
 
-export default function ProductDetail({ product }: { product: ProductData }) {
+export default function ProductDetail({
+  product,
+  sessionUser,
+}: {
+  product: ProductData;
+  sessionUser: any;
+}) {
   const [images, setImages] = useState([]);
   const [galleryImages, setGalleryImages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(
@@ -774,7 +780,11 @@ export default function ProductDetail({ product }: { product: ProductData }) {
         </div>
       </TabsContent>
       <TabsContent value="text" className="py-10 h-[800px] overflow-y-auto">
-        <TextForm product={product?.product} user={data.user} />
+        <TextForm
+          product={product?.product}
+          user={data.user}
+          sessionUser={sessionUser}
+        />
       </TabsContent>
       <TabsContent value="attributes" className="max-w-[54rem] p-4">
         <div className="flex items-center justify-between mb-4">
