@@ -11,33 +11,38 @@ import {
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea"; // Assuming you have a Textarea component in your UI library
 import FancyMultipleSelect from "./fancy-multiple-select";
-import { updateProduct, updateSeoFields } from "@/lib/queries";
+import {
+  getAllProductCategories,
+  updateProduct,
+  updateProductCategory,
+  updateSeoFields,
+} from "@/lib/queries";
 import toast from "react-hot-toast";
 import { Button } from "../ui/button";
 import { useSession } from "next-auth/react";
+import { Loader2 } from "lucide-react";
 
-export default function TextForm({ product }) {
+export default function TextForm({ product, user }) {
   console.log(product);
   const [tags, setTags] = useState([]);
+  const [selectedTags, setSelectedTags] = useState([]);
   const [categories, setCategories] = useState([]);
   const [slug, setSlug] = useState("");
   const [metaDesc, setMetaDesc] = useState("");
   const [seoTitle, setSeoTitle] = useState("");
+  const [loading, setLoading] = useState(false);
   const [productTitle, setProductTitle] = useState("");
+  const [selectedCat, setSelectedCat] = useState(categories[0]);
   const [productDescription, setProductDescription] = useState("");
   const { data } = useSession();
 
   useEffect(() => {
-    // Fetch tags and categories from WooCommerce backend
-    // Example fetch functions
-    async function fetchTags() {
-      // Replace with actual fetch call
-    }
-    async function fetchCategories() {}
-    fetchTags();
-    fetchCategories();
+    const fetchCat = async () => {
+      const result = await getAllProductCategories(user.accessToken);
+      setCategories(result);
+    };
+    fetchCat();
     console.log(product.productCategories.nodes);
-    setCategories(product.productCategories.nodes);
     setTags(product.productTags.nodes);
     setSlug(product.slug);
     setMetaDesc(product.seo.metaDesc);
@@ -46,9 +51,19 @@ export default function TextForm({ product }) {
     setProductTitle(product.name);
   }, [product]);
 
+  function decodeBase64Id(encodedString) {
+    // Decode the Base64 encoded string
+    const decodedString = atob(encodedString);
+
+    // The decoded string is in the format `product:97`, split it to get the ID
+    const parts = decodedString.split(":");
+    return parts[1];
+  }
+
   const handleSaveChanges = async () => {
     try {
       console.log("USER", data.user);
+      setLoading(true);
       if (!data.user) {
         toast.error("You need to be logged in to save changes.");
         return;
@@ -58,7 +73,27 @@ export default function TextForm({ product }) {
         productTitle,
         productDescription,
         slug,
-        data.user.accessToken,
+        user.accessToken,
+        { append: false, nodes: selectedTags.length > 0 ? selectedTags : tags },
+      );
+
+      const decodedId = decodeBase64Id(product.id);
+      const decodedCat = decodeBase64Id(selectedCat);
+
+      const categoryInput = {
+        id: decodedId,
+        productCategories: {
+          nodes: [
+            {
+              id: decodedCat,
+            },
+          ],
+        },
+      };
+
+      const updateProductCategoriesResponse = await updateProductCategory(
+        categoryInput,
+        user.accessToken,
       );
 
       const updateSeoFieldsResponse = await updateSeoFields(
@@ -71,9 +106,15 @@ export default function TextForm({ product }) {
         toast.success("Changes saved successfully.");
       }
 
+      if (updateProductCategoriesResponse) {
+        toast.success("Category updated successfully.");
+      }
+
+      setLoading(false);
       // Add any additional logic after the API calls here
     } catch (error) {
       console.error("Error saving changes:", error);
+      setLoading(false);
       toast.error("An error occurred. Please try again later.");
     }
   };
@@ -102,13 +143,17 @@ export default function TextForm({ product }) {
         </div>
         <div className="space-y-2 col-span-2">
           <Label htmlFor="product-tags">Product Tags</Label>
-          <FancyMultipleSelect tags={product.productTags.nodes} />
+          <FancyMultipleSelect
+            tags={product.productTags.nodes}
+            selectedTags={selectedTags}
+            setSelectedTags={setSelectedTags}
+          />
         </div>
         <div className="space-y-2 col-span-2">
           <Label htmlFor="product-category">Product Category</Label>
           <Select
             id="product-category"
-            onValueChange={(value) => setCategories(value)}
+            onValueChange={(value) => setSelectedCat(value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select category" />
@@ -151,7 +196,11 @@ export default function TextForm({ product }) {
         </div>
         <div className="space-y-2 col-span-2">
           <Button variant="default" onClick={handleSaveChanges}>
-            Save Changes
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              "Save Changes"
+            )}
           </Button>
         </div>
       </div>

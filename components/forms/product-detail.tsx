@@ -46,6 +46,7 @@ import {
   Cloud,
   CreditCard,
   ImageIcon,
+  Loader2,
   User,
   UserPlus,
   Users,
@@ -75,6 +76,7 @@ import {
 
 import {
   getWordPressMedia,
+  updateGalleryImages,
   updateProductImage,
   uploadImage,
 } from "@/lib/queries";
@@ -96,9 +98,8 @@ export default function ProductDetail({ product }: { product: ProductData }) {
   const [selectedSizeImage, setSelectedSizeImage] = useState(null);
   const [selectOptionOne, setSelectOptionOne] = useState("Colour");
   const [selectOptionTwo, setSelectOptionTwo] = useState("Size");
-  const [inputValueOne, setInputValueOne] = useState<string>("");
-  const [inputValueTwo, setInputValueTwo] = useState<string>("");
   const [first, setFirst] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
   const [files, setFiles] = useState<File[] | null>(null);
   const [colorImages, setColorImages] = useState([
@@ -328,6 +329,7 @@ export default function ProductDetail({ product }: { product: ProductData }) {
     // }
 
     try {
+      setLoading(true);
       const result = await updateProductImage(
         product?.product?.id,
         product?.product?.image.id,
@@ -335,11 +337,25 @@ export default function ProductDetail({ product }: { product: ProductData }) {
         data.user.accessToken,
       );
 
+      const galleryImagesSrc = galleryImages
+        .filter((img) => img.src !== first)
+        .map((img) => img.src);
+
+      const result2 = await updateGalleryImages(
+        product?.product?.id,
+        galleryImagesSrc,
+        data.user.accessToken,
+      );
       if (result) {
         toast.success("Image updated successfully");
       }
+      if (result2) {
+        toast.success("Gallery updated successfully");
+      }
+      setLoading(false);
     } catch (err) {
       toast.error("Error updating image");
+      setLoading(false);
       console.log("Error updating image", err);
     }
   };
@@ -472,7 +488,13 @@ export default function ProductDetail({ product }: { product: ProductData }) {
         <Card className="h-full max-h-[1000px] overflow-auto">
           <CardHeader className="flex flex-row justify-between">
             <div></div>
-            <Button onClick={handleSaveChanges}>Save changes</Button>
+            <Button onClick={handleSaveChanges}>
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
           </CardHeader>
           <CardContent className="space-y-2 flex flex-col  overflow-y-auto">
             <div className="m-2 p-2 flex">
@@ -752,7 +774,7 @@ export default function ProductDetail({ product }: { product: ProductData }) {
         </div>
       </TabsContent>
       <TabsContent value="text" className="py-10 h-[800px] overflow-y-auto">
-        <TextForm product={product.product} />
+        <TextForm product={product?.product} user={data.user} />
       </TabsContent>
       <TabsContent value="attributes" className="max-w-[54rem] p-4">
         <div className="flex items-center justify-between mb-4">

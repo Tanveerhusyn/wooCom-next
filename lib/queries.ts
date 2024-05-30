@@ -1,8 +1,11 @@
 import {
   Product,
+  ProductCategoryNode,
   ProductData,
+  ProductProductTagsInput,
   ProductsData,
   SingleProduct,
+  UpdateProductInput,
   WordPressMedia,
 } from "../types";
 import { Buffer } from "buffer";
@@ -467,10 +470,11 @@ export async function updateProduct(
   content: string,
   slug: string,
   token: string,
+  productTags: ProductProductTagsInput,
 ): Promise<ProductData> {
   const query = `
-    mutation UpdateProduct($id: ID!, $title: String!, $content: String!, $slug: String!) {
-      updateProduct(input: { id: $id, title: $title, content: $content, slug: $slug }) {
+    mutation UpdateProduct($id: ID!, $title: String!, $content: String!, $slug: String!, $productTags: ProductProductTagsInput!) {
+      updateProduct(input: { id: $id, title: $title, content: $content, slug: $slug, productTags: $productTags }) {
         product {
           id
           title
@@ -480,7 +484,11 @@ export async function updateProduct(
             title
             metaDesc
           }
-           
+          productTags {
+            nodes {
+              name
+            }
+          }
         }
       }
     }
@@ -493,6 +501,7 @@ export async function updateProduct(
     title,
     content,
     slug,
+    productTags,
   };
 
   try {
@@ -529,6 +538,125 @@ export async function updateProduct(
     return result.data.updateProduct.product;
   } catch (error) {
     console.error("Error updating product:", error);
+    return null;
+  }
+}
+
+export async function getAllProductCategories(
+  token: string,
+): Promise<{ id: string; name: string }[]> {
+  const query = `
+    query MyQuery {
+      productCategories {
+        nodes {
+          name
+          children {
+            nodes {
+              id
+              name
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`, // Add authorization header if needed
+      },
+      body: JSON.stringify({ query }),
+      cache: "no-cache",
+      next: {
+        revalidate: 0,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    const result: {
+      data: any;
+      errors?: Array<{ message: string }>;
+    } = await response.json();
+
+    if (result.errors) {
+      throw new Error(result.errors.map((error) => error.message).join(", "));
+    }
+
+    const categories = result.data.productCategories.nodes;
+    let childrenCategories = [];
+
+    categories.forEach((category) => {
+      if (category.children && category.children.nodes.length > 0) {
+        childrenCategories = childrenCategories.concat(category.children.nodes);
+      }
+    });
+
+    return childrenCategories;
+  } catch (error) {
+    console.error("Error fetching or processing product categories:", error);
+    return [];
+  }
+}
+
+export async function updateProductCategory(
+  input,
+  token,
+): Promise<{
+  id: string;
+  name: string;
+  productCategories: ProductCategoryNode[];
+} | null> {
+  const mutation = `
+    mutation UpdateProductCategory($input: UpdateProductInput!) {
+      updateProduct(input: $input) {
+        product {
+          id
+          name
+          productCategories {
+            nodes {
+              id
+              name
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        query: mutation,
+        variables: { input },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    const result = await response.json();
+
+    if (result.errors) {
+      throw new Error(
+        result.errors.map((error: any) => error.message).join(", "),
+      );
+    }
+
+    return result.data.updateProduct.product;
+  } catch (error) {
+    console.error("Error updating product category:", error);
     return null;
   }
 }
@@ -726,6 +854,8 @@ export async function authenticate(
       throw new Error(result.errors.map((error) => error.message).join(", "));
     }
 
+    console.log("result", result.data);
+
     const authToken = result.data.login.authToken;
     console.log("authToken", authToken);
 
@@ -771,6 +901,72 @@ export async function authenticate(
   } catch (error) {
     console.error("Error authenticating:", error);
     return null;
+  }
+}
+
+export async function updateGalleryImages(
+  productId: string,
+  galleryImages: string[],
+  token: string,
+): Promise<boolean> {
+  const decodeBase64ProductId = decodeBase64Id(productId);
+
+  const mutation = `
+    mutation UpdateGalleryImages($productId: ID!, $galleryImages: [String!]!) {
+      updateProductGalleryImages(
+        productId: $productId,
+        galleryImages: $galleryImages
+      ) {
+        id
+        galleryImages {
+          nodes {
+            id
+            sourceUrl
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        query: mutation,
+        variables: {
+          productId: decodeBase64ProductId,
+          galleryImages,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorDetails = await response.text();
+      throw new Error(`Gallery images update failed: ${errorDetails}`);
+    }
+
+    const result: {
+      data: {
+        updateProductGalleryImages: {
+          id: string;
+          galleryImages: { nodes: Array<{ id: string; sourceUrl: string }> };
+        };
+      };
+      errors?: Array<{ message: string }>;
+    } = await response.json();
+
+    if (result.errors) {
+      throw new Error(result.errors.map((error) => error.message).join(", "));
+    }
+
+    return !!result.data.updateProductGalleryImages;
+  } catch (error) {
+    console.error("Error updating gallery images:", error);
+    return false;
   }
 }
 

@@ -207,6 +207,25 @@ interface SingleProduct {
   slug: string;
 }
 
+export interface ProductProductTagsInput {
+  nodes: {
+    name: string;
+  }[];
+}
+
+export interface ProductCategoryNode {
+  id: string;
+  name: string;
+}
+
+export interface UpdateProductInput {
+  id: string;
+  productCategories: {
+    append: boolean;
+    nodes: ProductCategoryNode[];
+  };
+}
+
 interface GlobalAttributes {
   globalColors: {
     nodes: {
