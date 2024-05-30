@@ -48,6 +48,11 @@ export default function TextForm({ product }) {
 
   const handleSaveChanges = async () => {
     try {
+      console.log("USER", data.user);
+      if (!data.user) {
+        toast.error("You need to be logged in to save changes.");
+        return;
+      }
       const updateProductResponse = await updateProduct(
         product.id,
         productTitle,

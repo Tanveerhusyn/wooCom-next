@@ -499,8 +499,8 @@ export async function updateProduct(
     const response = await fetch("https://backend.02xz.com/graphql", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         query,
