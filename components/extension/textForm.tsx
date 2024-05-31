@@ -46,7 +46,7 @@ export default function TextForm({ product, user, sessionUser }) {
 
   useEffect(() => {
     const fetchCat = async (token) => {
-      const result = await getAllProductCategories(accessToken);
+      const result = await getAllProductCategories(token);
       setCategories(result);
     };
     console.log(product.productCategories.nodes);
@@ -58,8 +58,8 @@ export default function TextForm({ product, user, sessionUser }) {
     setProductTitle(product.name);
     const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
     console.log("PARSED USER", parsedValue);
-    if (parsedValue.accessToken) {
-      fetchCat(parsedValue.accessToken);
+    if (parsedUser && parsedValue.user.accessToken) {
+      fetchCat(parsedValue.user.accessToken);
     }
     setParsedUser(parsedValue);
   }, [product]);
