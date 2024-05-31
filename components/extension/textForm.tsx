@@ -31,6 +31,12 @@ export default function TextForm({ product, user, sessionUser }) {
   const [metaDesc, setMetaDesc] = useState("");
   const [seoTitle, setSeoTitle] = useState("");
   const [loading, setLoading] = useState(false);
+  const [parsedUser, setParsedUser] = useState({
+    accessToken: "",
+    email: "",
+    id: "",
+    name: "",
+  });
   const [productTitle, setProductTitle] = useState("");
   const [selectedCat, setSelectedCat] = useState(categories[0]);
   const [productDescription, setProductDescription] = useState("");
@@ -39,11 +45,10 @@ export default function TextForm({ product, user, sessionUser }) {
   console.log("USER", data, user, sessionUser);
 
   useEffect(() => {
-    const fetchCat = async () => {
-      const result = await getAllProductCategories(user.accessToken);
+    const fetchCat = async (token) => {
+      const result = await getAllProductCategories(accessToken);
       setCategories(result);
     };
-    fetchCat();
     console.log(product.productCategories.nodes);
     setTags(product.productTags.nodes);
     setSlug(product.slug);
@@ -51,6 +56,12 @@ export default function TextForm({ product, user, sessionUser }) {
     setSeoTitle(product.seo.title);
     setProductDescription(product.description);
     setProductTitle(product.name);
+    const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
+    console.log("PARSED USER", parsedValue);
+    if (parsedValue.accessToken) {
+      fetchCat(parsedValue.accessToken);
+    }
+    setParsedUser(parsedValue);
   }, [product]);
 
   function decodeBase64Id(encodedString) {
@@ -75,7 +86,7 @@ export default function TextForm({ product, user, sessionUser }) {
         productTitle,
         productDescription,
         slug,
-        user.accessToken,
+        parsedUser.accessToken,
         { append: false, nodes: selectedTags.length > 0 ? selectedTags : tags },
       );
 
@@ -95,7 +106,7 @@ export default function TextForm({ product, user, sessionUser }) {
 
       const updateProductCategoriesResponse = await updateProductCategory(
         categoryInput,
-        user.accessToken,
+        parsedUser.accessToken,
       );
 
       const updateSeoFieldsResponse = await updateSeoFields(
