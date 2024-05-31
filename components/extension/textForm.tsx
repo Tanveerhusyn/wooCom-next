@@ -38,11 +38,9 @@ export default function TextForm({ product, user, sessionUser }) {
     name: "",
   });
   const [productTitle, setProductTitle] = useState("");
-  const [selectedCat, setSelectedCat] = useState(categories[0]);
+  const [selectedCat, setSelectedCat] = useState();
   const [productDescription, setProductDescription] = useState("");
   const { data } = useSession();
-
-  console.log("USER", data, user, sessionUser);
 
   useEffect(() => {
     const fetchCat = async (token) => {
@@ -61,6 +59,7 @@ export default function TextForm({ product, user, sessionUser }) {
     if (parsedUser && parsedValue.user.accessToken) {
       fetchCat(parsedValue.user.accessToken);
     }
+    setSelectedCat(product.productCategories.nodes[0].id);
     setParsedUser(parsedValue.user);
   }, [product]);
 
