@@ -61,7 +61,7 @@ export default function TextForm({ product, user, sessionUser }) {
     if (parsedUser && parsedValue.user.accessToken) {
       fetchCat(parsedValue.user.accessToken);
     }
-    setParsedUser(parsedValue);
+    setParsedUser(parsedValue.user);
   }, [product]);
 
   function decodeBase64Id(encodedString) {
