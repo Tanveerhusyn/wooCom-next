@@ -136,6 +136,9 @@ interface SingleProduct {
   id: string;
   name: string;
   description: string;
+  tableData: {
+    tableData: any;
+  };
   productCategories: {
     nodes: {
       id: string;

@@ -28,7 +28,14 @@ export default function FancyMultiSelect({
     setFRAMEWORKS(results);
   }, [tags]);
 
-  const [selected, setSelected] = React.useState<Framework[]>([]);
+  const [selected, setSelected] = React.useState<Framework[]>(
+    tags.map((tag) => {
+      return {
+        value: tag.name,
+        label: tag.name,
+      };
+    }),
+  );
   const [inputValue, setInputValue] = React.useState("");
 
   const handleUnselect = React.useCallback(

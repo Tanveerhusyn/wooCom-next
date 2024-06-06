@@ -37,7 +37,7 @@ export const columns: ColumnDef<Product>[] = [
       return (
         <div className="flex justify-center gap-2 w-full max-w-60 items-center">
           <img
-            src={row.original.featuredImage.node.sourceUrl}
+            src={row.original.featuredImage?.node?.sourceUrl}
             alt={row.original.name}
             className="w-20 h-20 rounded-sm"
           />

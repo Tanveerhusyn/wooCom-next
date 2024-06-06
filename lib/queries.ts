@@ -286,10 +286,6 @@ export async function fetchProducts(
       next: { revalidate: 0 },
     });
 
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-
     const result: { data: ProductsData; errors?: Array<{ message: string }> } =
       await response.json();
 
@@ -321,6 +317,46 @@ function decodeBase64Id(encodedString) {
   return parts[1];
 }
 
+export async function updateProductTableData(productId, tableData, token) {
+  const decodedId = decodeBase64Id(productId);
+  const tableQuery = `mutation UpdateProductTableData($productId: ID!, $tableData: String!) {
+  updateProductTableData(input: { productId: $productId, tableData: $tableData }) {
+    success
+    product {
+      id
+      tableData {
+        tableData
+      }
+    }
+  }
+}
+`;
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        query: tableQuery,
+        variables: { productId: decodedId, tableData },
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.errors) {
+      throw new Error(result.errors.map((error) => error.message).join(", "));
+    }
+
+    return result.data.updateProductTableData;
+  } catch (error) {
+    console.error("Error updating product table data:", error);
+    return null;
+  }
+}
+
 export async function fetchProductById(id: string): Promise<ProductData> {
   const decodedid = decodeBase64Id(id);
   console.log("decodedid", decodedid);
@@ -331,10 +367,20 @@ export async function fetchProductById(id: string): Promise<ProductData> {
     id
     name
     description
+    tableData{
+      tableData
+    }
     productCategories {
       nodes {
         id
         name
+      }
+    }
+    attributes {
+      edges{
+        node{
+					options
+        }
       }
     }
     productTags {
@@ -444,10 +490,6 @@ export async function fetchProductById(id: string): Promise<ProductData> {
       },
     });
 
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-
     const result: {
       data: any;
       errors?: Array<{ message: string }>;
@@ -521,10 +563,6 @@ export async function updateProduct(
       },
     });
 
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-
     const result: {
       data: any;
       errors?: Array<{ message: string }>;
@@ -538,6 +576,64 @@ export async function updateProduct(
     return result.data.updateProduct.product;
   } catch (error) {
     console.error("Error updating product:", error);
+    return null;
+  }
+}
+
+export async function updateProductAttributes(
+  id: string,
+  colours: string[],
+  sizes: string[],
+  token: string,
+): Promise<ProductData> {
+  const query = `
+    mutation UpdateProductAttributes($id: ID!, $colours: [String], $sizes: [String]) {
+      updateProductAttributes(input: { productId: $id, colours: $colours, sizes: $sizes }) {
+        success
+      }
+    }
+  `;
+
+  const decodedId = decodeBase64Id(id);
+
+  const variables = {
+    id: decodedId,
+    colours,
+    sizes,
+  };
+
+  console.log("Attributes", variables);
+
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+      cache: "no-cache",
+      next: {
+        revalidate: 0,
+      },
+    });
+
+    const result: {
+      data: any;
+      errors?: Array<{ message: string }>;
+    } = await response.json();
+    console.log("Update Product Attributes", result);
+
+    if (result.errors) {
+      throw new Error(result.errors.map((error) => error.message).join(", "));
+    }
+
+    return result.data.updateProductAttributes.success;
+  } catch (error) {
+    console.error("Error updating product attributes:", error);
     return null;
   }
 }
@@ -574,10 +670,6 @@ export async function getAllProductCategories(
         revalidate: 0,
       },
     });
-
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
 
     const result: {
       data: any;
@@ -642,10 +734,6 @@ export async function updateProductCategory(
       }),
     });
 
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-
     const result = await response.json();
 
     if (result.errors) {
@@ -697,10 +785,6 @@ export async function updateSeoFields(
         revalidate: 0,
       },
     });
-
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
 
     const result: {
       data: any;
@@ -767,10 +851,6 @@ export async function updateProductMetaData(
       },
     });
 
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-
     const result: {
       data: ProductData;
       errors?: Array<{ message: string }>;
@@ -794,9 +874,6 @@ export async function getWordPressMedia(): Promise<WordPressMedia[]> {
     const response = await fetch(
       "https://backend.02xz.com/wp-json/wp/v2/media?per_page=30",
     );
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
 
     //
     const data = await response.json();
@@ -824,39 +901,45 @@ export async function authenticate(
   password: string,
 ): Promise<User | null> {
   try {
+    // const response = await fetch("https://backend.02xz.com/graphql", {
+    //   method: "POST",
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //   },
+    //   body: JSON.stringify({
+    //     query: `
+    //       mutation LoginUser($username: String!, $password: String!) {
+    //         login(input: { username: $username, password: $password }) {
+    //           authToken
+    //         }
+    //       }
+    //     `,
+    //     variables: { username, password },
+    //   }),
+    // });
+
     const response = await fetch("https://backend.02xz.com/graphql", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      method: "post",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         query: `
-          mutation LoginUser($username: String!, $password: String!) {
-            login(input: { username: $username, password: $password }) {
-              authToken
-            }
-          }
-        `,
-        variables: { username, password },
+              mutation LoginUser {
+                login( input: {
+                  clientMutationId: "uniqueId",
+                  username: "${username}",
+                  password: "${password}"
+                }){
+                  authToken
+                }
+              }
+            `,
       }),
     });
 
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
+    const { data } = await response.json();
 
-    const result: {
-      data: { login: { authToken: string } };
-      errors?: Array<{ message: string }>;
-    } = await response.json();
+    const authToken = data.login.authToken;
 
-    if (result.errors) {
-      throw new Error(result.errors.map((error) => error.message).join(", "));
-    }
-
-    console.log("result", result.data);
-
-    const authToken = result.data.login.authToken;
     console.log("authToken", authToken);
 
     // Fetch user details using the authToken
@@ -879,15 +962,12 @@ export async function authenticate(
       }),
     });
 
-    if (!userResponse.ok) {
-      throw new Error("Network response was not ok");
-    }
-
     const userResult: {
       data: { viewer: { id: string; name: string; email: string } };
       errors?: Array<{ message: string }>;
     } = await userResponse.json();
 
+    console.log("userResult", userResult);
     if (userResult.errors) {
       throw new Error(
         userResult.errors.map((error) => error.message).join(", "),
@@ -989,10 +1069,6 @@ export async function uploadImage(
         body: formData,
       },
     );
-
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
 
     const data = await response.json();
     return {

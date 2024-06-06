@@ -77,6 +77,7 @@ import {
 import {
   getWordPressMedia,
   updateGalleryImages,
+  updateProductAttributes,
   updateProductImage,
   uploadImage,
 } from "@/lib/queries";
@@ -91,13 +92,13 @@ export default function ProductDetail({
   product,
   sessionUser,
 }: {
-  product: ProductData;
+  product: any;
   sessionUser: any;
 }) {
   const [images, setImages] = useState([]);
   const [galleryImages, setGalleryImages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(
-    product?.product.image.sourceUrl || null,
+    product?.product?.image?.sourceUrl || null,
   );
   const [variantImages, setVariantImages] = useState([]);
   const [allColors, setAllColors] = useState([]);
@@ -107,6 +108,7 @@ export default function ProductDetail({
   const [first, setFirst] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
+  const [attLoading, setAttLoading] = useState<boolean>(false);
   const [files, setFiles] = useState<File[] | null>(null);
   const [colorImages, setColorImages] = useState([
     {
@@ -140,18 +142,18 @@ export default function ProductDetail({
         console.log("MEDIA", gImages);
         setGalleryImages([
           {
-            id: product?.product?.image.id,
-            src: product?.product?.image.sourceUrl,
-            alt: `Image ${product?.product?.image.id}`,
+            id: product?.product?.image?.id,
+            src: product?.product?.image?.sourceUrl,
+            alt: `Image ${product?.product?.image?.id}`,
           },
           ...gImages,
         ]);
       } else {
         setGalleryImages([
           {
-            id: product?.product?.image.id,
-            src: product?.product?.image.sourceUrl,
-            alt: `Image ${product?.product?.image.id}`,
+            id: product?.product?.image?.id,
+            src: product?.product?.image?.sourceUrl,
+            alt: `Image ${product?.product?.image?.id}`,
           },
         ]);
       }
@@ -338,7 +340,7 @@ export default function ProductDetail({
       setLoading(true);
       const result = await updateProductImage(
         product?.product?.id,
-        product?.product?.image.id,
+        product?.product?.image?.id,
         first,
         data.user.accessToken,
       );
@@ -366,17 +368,69 @@ export default function ProductDetail({
     }
   };
 
-  const handleValueChange = (option: string, value: string) => {
-    switch (option) {
-      case "Collection":
-      case "Gender":
-      case "Colour":
-      case "Size":
-        return value;
-      default:
-        return "";
+  const [existingColours, setExistingColours] = useState(
+    getExistingValues("Colour"),
+  );
+  const [newColours, setNewColours] = useState(
+    Array(existingColours.length).fill(""),
+  );
+  const [existingSizes, setExistingSizes] = useState(getExistingValues("Size"));
+  const [newSizes, setNewSizes] = useState(
+    Array(existingSizes.length).fill(""),
+  );
+
+  const handleStoreAttributes = async () => {
+    try {
+      console.log("USER", data.user);
+      setAttLoading(true);
+      if (!data.user) {
+        toast.error("You need to be logged in to save changes.");
+        return;
+      }
+
+      // Use the selected values from state
+      const selectedColours = newColours.filter(Boolean); // Only include non-empty values
+      const selectedSizes = newSizes.filter(Boolean); // Only include non-empty values
+
+      console.log("Selected Colours:", selectedColours);
+      console.log("Selected Sizes:", selectedSizes);
+
+      const updateProductAttributesResponse = await updateProductAttributes(
+        product?.product?.id,
+        selectedColours,
+        selectedSizes,
+        data.user.accessToken,
+      );
+
+      if (updateProductAttributesResponse) {
+        toast.success("Attributes updated successfully.");
+      } else {
+        toast.error("Failed to update attributes.");
+      }
+
+      setAttLoading(false);
+    } catch (error) {
+      console.error("Error updating attributes:", error);
+      setAttLoading(false);
+      toast.error("An error occurred. Please try again later.");
     }
   };
+
+  const [colours, setColours] = useState(getExistingValues("Colour"));
+  const [sizes, setSizes] = useState(getExistingValues("Size"));
+
+  const handleValueChange = (option, idx, newValue) => {
+    if (option === "Colour") {
+      const updatedColours = [...colours];
+      updatedColours[idx] = newValue;
+      setColours(updatedColours);
+    } else if (option === "Size") {
+      const updatedSizes = [...sizes];
+      updatedSizes[idx] = newValue;
+      setSizes(updatedSizes);
+    }
+  };
+
   return (
     <Tabs className="w-full" defaultValue="overview">
       <TabsList className="grid w-full grid-cols-5">
@@ -404,7 +458,7 @@ export default function ProductDetail({
                 }).map((_, index) => (
                   <SliderMainItem key={index} className="bg-transparent">
                     <img
-                      src={product?.product?.image.sourceUrl}
+                      src={product?.product?.image?.sourceUrl}
                       alt={product?.product.name}
                       className="w-full h-full object-cover rounded-lg"
                     />
@@ -421,7 +475,7 @@ export default function ProductDetail({
                     >
                       <div className="outline outline-1 outline-border size-full flex items-center justify-center rounded-xl bg-background">
                         <img
-                          src={product?.product?.image.sourceUrl}
+                          src={product?.product?.image?.sourceUrl}
                           alt={product?.product.name}
                           className="w-[100px] h-[80px] object-cover rounded-lg"
                         />
@@ -776,7 +830,13 @@ export default function ProductDetail({
               ]}
             />
           )) || <HiPhoto className="w-[54rem] h-[200px] mx-auto my-4" />}
-          <SpreadSheet productId={product?.product?.id} />
+          <SpreadSheet
+            productId={product?.product?.id}
+            product={product?.product}
+            selectedImage={selectedSizeImage}
+            setSelectedImage={setSelectedSizeImage}
+            sessionUser={sessionUser}
+          />
         </div>
       </TabsContent>
       <TabsContent value="text" className="py-10 h-[800px] overflow-y-auto">
@@ -788,6 +848,15 @@ export default function ProductDetail({
       </TabsContent>
       <TabsContent value="attributes" className="max-w-[54rem] p-4">
         <div className="flex items-center justify-between mb-4">
+          <Button onClick={handleStoreAttributes}>
+            {attLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Save Attributes"
+            )}
+          </Button>
+        </div>
+        {/* <div className="flex items-center justify-between mb-4">
           <div className="flex items-center w-full max-w-[300px]">
             <Label htmlFor="global-dropdown" className="w-[50%]">
               {selectOptionOne || "Select Option"}
@@ -808,72 +877,82 @@ export default function ProductDetail({
               </SelectContent>
             </Select>
           </div>
-        </div>
-        <div className="grid grid-cols-3 gap-4">
-          {selectOptionOne &&
-            getExistingValues(selectOptionOne).map((value, idx) => (
-              <div key={idx} className="space-y-2">
-                <Input
-                  id={`input-${selectOptionOne}-${idx}`}
-                  value={value}
-                  placeholder={value}
-                />
-                <Select>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={`Select ${selectOptionOne}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {renderSelectContent(selectOptionOne)}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
-        </div>
-        <div className="flex items-center justify-between my-4">
-          <div className="flex items-center w-full max-w-[300px]">
-            <Label htmlFor="global-dropdown" className="w-[50%]">
-              {selectOptionTwo || "Select Option"}
-            </Label>
-            <Select onValueChange={(value) => setSelectOptionTwo(value)}>
-              <SelectTrigger className="w-[50%]">
-                <SelectValue placeholder="Select an option" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Options</SelectLabel>
-                  {filteredOptionsTwo.map((option, idx) => (
-                    <SelectItem key={idx} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+        </div> */}
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2 mb-2">
+            <Label>Colour</Label>
           </div>
+          {existingColours.map((value, idx) => (
+            <div key={idx} className="space-y-2">
+              <Input
+                id={`input-existing-colour-${idx}`}
+                value={value}
+                placeholder={value}
+                readOnly
+              />
+            </div>
+          ))}
+          {newColours.map((value, idx) => (
+            <div key={idx} className="space-y-2">
+              <Select
+                value={value}
+                onValueChange={(newValue) => {
+                  const updatedColours = [...newColours];
+                  updatedColours[idx] = newValue;
+                  setNewColours(updatedColours);
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a colour" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Options</SelectLabel>
+                    {renderSelectContent("Colour")}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
         </div>
-        <div className="grid grid-cols-3 gap-4 mt-4">
-          {selectOptionTwo &&
-            getExistingValues(selectOptionTwo).map((value, idx) => (
-              <div key={idx} className="space-y-2">
-                <Input
-                  id={`input-${selectOptionTwo}-${idx}`}
-                  value={value}
-                  placeholder={value}
-                />
-                <Select>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={`Select ${selectOptionTwo}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {renderSelectContent(selectOptionTwo)}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
+
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="col-span-2 mb-2">
+            <Label>Size</Label>
+          </div>
+          {existingSizes.map((value, idx) => (
+            <div key={idx} className="space-y-2">
+              <Input
+                id={`input-existing-size-${idx}`}
+                value={value}
+                placeholder={value}
+                readOnly
+              />
+            </div>
+          ))}
+          {newSizes.map((value, idx) => (
+            <div key={idx} className="space-y-2">
+              <Select
+                value={value}
+                onValueChange={(newValue) => {
+                  const updatedSizes = [...newSizes];
+                  updatedSizes[idx] = newValue;
+                  setNewSizes(updatedSizes);
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a size" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Options</SelectLabel>
+                    {renderSelectContent("Size")}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
         </div>
       </TabsContent>
     </Tabs>
