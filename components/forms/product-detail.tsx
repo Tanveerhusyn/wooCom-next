@@ -394,12 +394,13 @@ export default function ProductDetail({
 
       console.log("Selected Colours:", selectedColours);
       console.log("Selected Sizes:", selectedSizes);
+      const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
 
       const updateProductAttributesResponse = await updateProductAttributes(
         product?.product?.id,
         selectedColours,
         selectedSizes,
-        data.user.accessToken,
+        parsedValue.user.accessToken,
       );
 
       if (updateProductAttributesResponse) {
