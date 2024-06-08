@@ -817,27 +817,32 @@ export default function ProductDetail({
         </Card>
       </TabsContent>
       <TabsContent value="size" className="py-10 h-[800px] overflow-y-auto">
-        <div className="grid grid-cols-2 ">
-          {(selectedSizeImage && (
-            <Gallery
-              first={null}
-              setFirst={null}
-              isColor={""}
-              images={[
-                {
-                  id: selectedSizeImage?.id,
-                  src: selectedSizeImage?.source_url,
-                },
-              ]}
+        <div className="flex justify-between items-start h-full">
+          <div className="max-w-[400px]">
+            {" "}
+            {(selectedSizeImage && (
+              <Gallery
+                first={null}
+                setFirst={null}
+                isColor={""}
+                images={[
+                  {
+                    id: selectedSizeImage?.id,
+                    src: selectedSizeImage?.source_url,
+                  },
+                ]}
+              />
+            )) || <HiPhoto className="w-[30rem] h-[200px] mx-auto my-4" />}
+          </div>
+          <div className="col-span-2 ">
+            <SpreadSheet
+              productId={product?.product?.id}
+              product={product?.product}
+              selectedImage={selectedSizeImage}
+              setSelectedImage={setSelectedSizeImage}
+              sessionUser={sessionUser}
             />
-          )) || <HiPhoto className="w-[54rem] h-[200px] mx-auto my-4" />}
-          <SpreadSheet
-            productId={product?.product?.id}
-            product={product?.product}
-            selectedImage={selectedSizeImage}
-            setSelectedImage={setSelectedSizeImage}
-            sessionUser={sessionUser}
-          />
+          </div>
         </div>
       </TabsContent>
       <TabsContent value="text" className="py-10 h-[800px] overflow-y-auto">

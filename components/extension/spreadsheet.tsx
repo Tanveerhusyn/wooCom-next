@@ -1,9 +1,24 @@
-import React, { useEffect, useState } from "react";
-import Spreadsheet, { CellBase, DataEditor, Matrix } from "react-spreadsheet";
+import React, { useState, useMemo, useEffect } from "react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  flexRender,
+  ColumnDef,
+} from "@tanstack/react-table";
 import { Button } from "../ui/button";
-import { updateProductMetaData, updateProductTableData } from "@/lib/queries";
+import { updateProductTableData } from "@/lib/queries";
 import toast from "react-hot-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
+import { ScrollArea } from "../ui/scroll-area";
+
+const OPTIONS = [
+  { value: "small", label: "Small" },
+  { value: "medium", label: "Medium" },
+  { value: "large", label: "Large" },
+  { value: "xlarge", label: "X-Large" },
+];
 
 const bodyParts = [
   "Neck Girth",
@@ -25,33 +40,15 @@ const bodyParts = [
   "Inside Leg Height",
 ];
 
-const sizes = ["Small", "Medium", "Large", "X-Large"];
-
-const HeaderSelect = ({ cell, onChange }) => {
+const BodyPartCell = ({ value, onChange }) => {
   return (
     <select
-      value={cell.value}
-      onChange={(e) => onChange({ ...cell, value: e.target.value })}
-      className="block w-full px-3 py-2 border border-gray-300 bg-white/10 rounded-md shadow-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-    >
-      {sizes.map((part) => (
-        <option key={part} value={part} className="text-gray-700">
-          {part}
-        </option>
-      ))}
-    </select>
-  );
-};
-
-const BodyPartEditor = ({ cell, onChange }) => {
-  return (
-    <select
-      value={cell.value}
-      onChange={(e) => onChange({ ...cell, value: e.target.value })}
-      className="block w-full px-3 py-2 border border-gray-300 bg-white/10 rounded-md shadow-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="block w-full px-3 py-2 border border-gray-700 bg-gray-800 rounded-md shadow-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm text-white"
     >
       {bodyParts.map((part) => (
-        <option key={part} value={part} className="text-gray-700">
+        <option key={part} value={part} className="text-white">
           {part}
         </option>
       ))}
@@ -59,45 +56,44 @@ const BodyPartEditor = ({ cell, onChange }) => {
   );
 };
 
-function parseTableData(jsonString) {
-  try {
-    // Parse the outer JSON string
-    let parsedData = JSON.parse(jsonString);
-
-    // Parse the nested JSON string within tableData
-    parsedData.tableData = JSON.parse(parsedData.tableData);
-
-    return parsedData;
-  } catch (error) {
-    console.error("Error parsing JSON:", error);
-    return null;
-  }
-}
-
-const transformData = (data) => {
-  return data.map((row, index) => {
-    return row.map((cell, cellIndex) => {
-      // Check if cell.value is a string before calling includes()
-      const value = String(cell.value); // Convert to string to safely use includes()
-
-      // For the header row, apply HeaderSelect editor to all but the first cell
-      if (index === 0 && cellIndex !== 0) {
-        return { ...cell, DataEditor: HeaderSelect, className: "header-cell" };
-      }
-      // For all 'Girth', 'Width', 'Length', 'Height' measurements, apply BodyPartEditor
-      else if (
-        value.includes("Girth") ||
-        value.includes("Width") ||
-        value.includes("Length") ||
-        value.includes("Height")
-      ) {
-        return { ...cell, DataEditor: BodyPartEditor };
-      }
-      // Return the cell as is if no conditions apply
-      return cell;
-    });
-  });
+const HeaderSelect = ({ value, onChange }) => {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="block w-full px-3 py-2 border border-gray-700 bg-gray-800 rounded-md shadow-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm text-white"
+    >
+      {OPTIONS.map((option) => (
+        <option key={option.value} value={option.value} className="text-white">
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
 };
+
+const EditableCell = ({ initialValue, columnId, rowIndex, updateData }) => {
+  const [value, setValue] = useState(initialValue);
+
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  const onBlur = () => {
+    updateData(rowIndex, columnId, value);
+  };
+
+  return (
+    <input
+      type="number"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={onBlur}
+      className="w-full px-3 py-2 border border-gray-700 bg-gray-800 rounded-md shadow-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm text-white"
+    />
+  );
+};
+
 const App = ({
   productId,
   product,
@@ -105,54 +101,66 @@ const App = ({
   sessionUser,
   setSelectedImage,
 }) => {
-  const [headerSelectValue, setHeaderSelectValue] = useState("");
+  const columns = useMemo(
+    () => [
+      {
+        header: "Body Part",
+        accessorKey: "bodyPart",
+        cell: ({ getValue, row: { index }, column: { id }, table }) => (
+          <BodyPartCell
+            value={getValue()}
+            onChange={(newValue) =>
+              table.options.meta?.updateData(index, id, newValue)
+            }
+          />
+        ),
+      },
+      ...OPTIONS.map((option) => ({
+        header: ({ column }) => (
+          <HeaderSelect
+            value={option.value}
+            onChange={(newValue) =>
+              table.options.meta?.updateData(-1, column.id, newValue)
+            }
+          />
+        ),
+        accessorKey: option.value,
+        cell: ({ getValue, row: { index }, column: { id }, table }) => (
+          <EditableCell
+            initialValue={getValue()}
+            columnId={id}
+            rowIndex={index}
+            updateData={table.options.meta?.updateData}
+          />
+        ),
+      })),
+      {
+        header: () => <span>Actions</span>,
+        accessorKey: "actions",
+        cell: ({ row }) => (
+          <div
+            onClick={() => handleDelete(row.index)}
+            className="flex space-x-2 cursor-pointer"
+          >
+            <Trash2 className="w-6 h-6 text-red-500" />
+          </div>
+        ),
+      },
+    ],
+    [],
+  );
 
-  const [data, setData] = useState<Matrix<CellBase>>([]);
+  const [data, setData] = useState([]);
+
   const [loading, setLoading] = useState(false);
 
-  function fixJsonError(jsonString) {
-    try {
-      return JSON.parse(jsonString);
-    } catch (error) {
-      console.error("Original JSON error: ", error.message);
-
-      const position = parseInt(error.message.match(/position (\d+)/)[1], 10);
-      console.log(`Error at position: ${position}`);
-
-      // Let's try to correct by escaping the problematic string
-      const part1 = jsonString.slice(0, position);
-      const part2 = jsonString.slice(position);
-      const corrected = part1
-        .replace(/(?<=":\s*")(?=[^"]*?{)/g, "\\")
-        .concat(part2);
-
-      // Check if the correction solves the issue
-      try {
-        return JSON.parse(corrected);
-      } catch (err) {
-        console.error("Failed to auto-correct JSON:", err.message);
-        // Show a preview of where the issue might be
-        console.log(
-          "Problem near:",
-          jsonString.substring(position - 20, position + 20),
-        );
-        return null; // Return null if we can't auto-correct
-      }
-    }
-  }
   useEffect(() => {
     if (product.tableData) {
-      const first = product.tableData?.tableData.replace(/`/g, '"');
-      console.log("FIXED JSON", typeof first);
+      const first = product.tableData?.tableData?.replace(/`/g, '"');
       if (first) {
-        console.log("FIXED BEFORE", first);
-        const parsedTable = JSON.parse(first); // Initial JSON parsing.
-        console.log("FIXED AFTER", parsedTable);
-        // Ensure deeper parsing for nested JSON strings.
+        const parsedTable = JSON.parse(first);
         if (parsedTable && typeof parsedTable.tableData === "string") {
           const deeperParsedTable = JSON.parse(parsedTable.tableData);
-          console.log("DEEPER PARSED TABLE", deeperParsedTable);
-          // Check if the 'value' property needs further parsing.
           if (
             deeperParsedTable &&
             typeof deeperParsedTable.value === "string"
@@ -160,87 +168,71 @@ const App = ({
             if (!selectedImage) {
               setSelectedImage(deeperParsedTable?.image);
             }
-            // Use a regex to correctly format the JSON keys by adding double quotes around them.
             let jsonString = deeperParsedTable.value.replace(
               /([{,])(\s*)([A-Za-z0-9_]+?)\s*:/g,
               '$1"$3":',
             );
-            jsonString = jsonString.replace(/'/g, '"'); // Replace all single quotes with double quotes
-            console.log("JSON STRING FOR PARSING", jsonString); // Log the string to verify it's correctly formatted.
+            jsonString = jsonString.replace(/'/g, '"');
             try {
               const deepestParsedTable = JSON.parse(jsonString);
-              console.log("DEEPEST PARSED TABLE", deepestParsedTable);
-              const transformedData = transformData(deepestParsedTable);
-              setData(transformedData);
+              const formattedData = deepestParsedTable.map((row) => {
+                const formattedRow = {};
+                row.forEach((cell, index) => {
+                  if (index === 0) {
+                    formattedRow["bodyPart"] = cell.value;
+                  } else {
+                    formattedRow[OPTIONS[index - 1].value] = cell.value;
+                  }
+                });
+                return formattedRow;
+              });
+              setData(formattedData);
             } catch (error) {
-              console.error("Error parsing JSON", error); // This will give more insight into what might be wrong if it fails again.
+              console.error("Error parsing JSON", error);
             }
           }
         }
       }
-      //   ? parseTableData(product.tableData.tableData)
-      //   : {};
-      // console.log("PARSED TABLE", product.tableData);
-      // if (parsedTable) {
-      //   setData(parsedTable.value);
-      // }
     }
   }, [product]);
 
-  const addRow = () => {
-    const newRow = [
-      { value: "", DataEditor: BodyPartEditor },
-      ...new Array(data[0].length - 1).fill({ value: "" }),
-    ];
-    setData([...data, newRow]);
-  };
-
-  const addColumn = () => {
-    const newColumnHeader = {
-      value: `New Size ${data[0].length - 1}`,
-      readOnly: true,
-      className: "header-cell",
-    };
-    const newData = data.map((row, rowIndex) => {
-      if (rowIndex === 0) {
-        return [...row, newColumnHeader];
-      }
-      return [...row, { value: "" }];
-    });
-    setData(newData);
-  };
-
-  const deleteRow = (rowIndex) => {
-    if (data.length > 1 && rowIndex < data.length) {
-      const newData = data.filter((_, index) => index !== rowIndex);
-      setData(newData);
-    }
-  };
-
-  const deleteColumn = (colIndex) => {
-    if (data[0].length > 1 && colIndex < data[0].length) {
-      const newData = data.map((row) =>
-        row.filter((_, index) => index !== colIndex),
-      );
-      setData(newData);
-    }
-  };
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    meta: {
+      updateData: (rowIndex, columnId, value) => {
+        setData((old) =>
+          old.map((row, index) => {
+            if (index === rowIndex) {
+              return {
+                ...old[rowIndex],
+                [columnId]: value,
+              };
+            }
+            return row;
+          }),
+        );
+      },
+    },
+  });
 
   const handleStoreData = async () => {
     try {
       setLoading(true);
       const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
-      console.log("PARSED USER", parsedValue);
       if (parsedValue && parsedValue.user.accessToken) {
-        // Dynamic construction of the value array from state
         const dynamicValues = data.map((row) =>
-          row.map((cell) => {
-            if (typeof cell.value === "number") {
-              return `{'value':${cell.value}}`;
-            } else if (cell.className) {
-              return `{'value':'${cell.value}','className':'${cell.className}'}`;
+          Object.keys(row).map((key) => {
+            const value = row[key];
+            if (typeof value === "number") {
+              return `{'value':${value}}`;
+            } else if (key === "bodyPart") {
+              return `{'value':'${value}'}`;
             } else {
-              return `{'value':'${cell.value}'}`;
+              return `{'value':'${value}'}`;
             }
           }),
         );
@@ -256,14 +248,12 @@ const App = ({
         const formattedJSON = values
           .replace(/\\/g, "\\\\")
           .replace(/"/g, '\\"');
-        console.log("FORMATTED JSON", formattedJSON);
 
         const result = await updateProductTableData(
           productId,
           formattedJSON,
           parsedValue.user.accessToken,
         );
-        console.log(result);
 
         if (result) {
           toast.success("Data saved successfully.");
@@ -281,49 +271,27 @@ const App = ({
     }
   };
 
-  const [deleteRowIndex, setDeleteRowIndex] = useState(0);
-  const [deleteColumnIndex, setDeleteColumnIndex] = useState(0);
+  const handleDelete = (rowIndex) => {
+    setData((old) => old.filter((_, index) => index !== rowIndex));
+  };
 
   return (
-    <div>
+    <div className="container mx-auto bg-black text-white border border-gray-800 min-h-screen p-4">
       <div className="w-full flex flex-col h-full">
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <Button onClick={addRow} variant="outline">
-            Add Row
+        <div className="grid grid-cols-2 gap-2 max-w-[350px] mb-4">
+          <Button
+            onClick={() =>
+              setData([
+                { bodyPart: "", small: "", medium: "", large: "", xlarge: "" },
+                ...data,
+              ])
+            }
+            className="w-40"
+            variant=""
+          >
+            <Plus className="w-5 h-5" />
+            Add New
           </Button>
-          <Button onClick={addColumn} variant="outline">
-            Add Column
-          </Button>
-          <div className="flex items-center space-x-2">
-            <input
-              type="number"
-              value={deleteRowIndex}
-              onChange={(e) => setDeleteRowIndex(parseInt(e.target.value))}
-              className="px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-              placeholder="Row Index"
-            />
-            <Button
-              onClick={() => deleteRow(deleteRowIndex)}
-              variant="destructive"
-            >
-              Delete Row
-            </Button>
-          </div>
-          <div className="flex items-center space-x-2">
-            <input
-              type="number"
-              value={deleteColumnIndex}
-              onChange={(e) => setDeleteColumnIndex(parseInt(e.target.value))}
-              className="px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-              placeholder="Column Index"
-            />
-            <Button
-              onClick={() => deleteColumn(deleteColumnIndex)}
-              variant="destructive"
-            >
-              Delete Column
-            </Button>
-          </div>
           <Button onClick={handleStoreData} className="w-40">
             {loading ? (
               <Loader2 className="w-6 h-6 animate-spin" />
@@ -332,7 +300,49 @@ const App = ({
             )}
           </Button>
         </div>
-        <Spreadsheet data={data} onChange={setData} className="" darkMode />
+        <div className="flex-1 overflow-auto">
+          <table className="w-full bg-black text-white">
+            <thead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id} className="bg-black">
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className="py-2 px-4 border-b border-gray-600"
+                    >
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody className="max-h-[500px] overflow-y-auto block w-full">
+              {table.getRowModel().rows.map((row) => (
+                <tr
+                  key={row.id}
+                  className="hover:bg-gray-700 flex w-full"
+                  style={{ display: "flex" }}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className="py-2 px-4 border-b border-gray-600"
+                      style={{ flex: "1 0 auto" }}
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

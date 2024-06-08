@@ -104,7 +104,8 @@ export default function TextForm({ product, user, sessionUser }) {
       };
 
       const updateProductCategoriesResponse = await updateProductCategory(
-        categoryInput,
+        decodedId,
+        decodedCat,
         parsedUser.accessToken,
       );
 

@@ -697,29 +697,31 @@ export async function getAllProductCategories(
 }
 
 export async function updateProductCategory(
-  input,
-  token,
+  productId: string,
+  categoryId: string,
+  token: string,
 ): Promise<{
   id: string;
   name: string;
   productCategories: ProductCategoryNode[];
 } | null> {
   const mutation = `
-    mutation UpdateProductCategory($input: UpdateProductInput!) {
-      updateProduct(input: $input) {
+    mutation UpdateProductCategoriesAndCheckParents($input: UpdateProductCategoriesAndCheckParentsInput!) {
+      updateProductCategoriesAndCheckParents(input: $input) {
         product {
           id
           name
-          productCategories {
-            nodes {
-              id
-              name
-            }
-          }
         }
       }
     }
   `;
+
+  const input = {
+    productId,
+    categoryId,
+  };
+
+  console.log("input", input);
 
   try {
     const response = await fetch("https://backend.02xz.com/graphql", {
@@ -742,7 +744,7 @@ export async function updateProductCategory(
       );
     }
 
-    return result.data.updateProduct.product;
+    return result.data.updateProductCategoriesAndCheckParents.product;
   } catch (error) {
     console.error("Error updating product category:", error);
     return null;
