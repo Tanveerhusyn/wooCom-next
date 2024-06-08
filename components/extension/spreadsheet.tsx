@@ -45,7 +45,7 @@ const BodyPartCell = ({ value, onChange }) => {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="block w-full px-3 py-2 border border-gray-700 bg-gray-800 rounded-md shadow-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm text-white"
+      className="block w-full px-3 py-2 border border-gray-700 bg-black rounded-md shadow-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm text-white"
     >
       {bodyParts.map((part) => (
         <option key={part} value={part} className="text-white">
@@ -61,7 +61,7 @@ const HeaderSelect = ({ value, onChange }) => {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="block w-full px-3 py-2 border border-gray-700 bg-gray-800 rounded-md shadow-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm text-white"
+      className="block w-full px-3 py-2 border border-gray-700 bg-black rounded-md shadow-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm text-white"
     >
       {OPTIONS.map((option) => (
         <option key={option.value} value={option.value} className="text-white">
@@ -89,7 +89,7 @@ const EditableCell = ({ initialValue, columnId, rowIndex, updateData }) => {
       value={value}
       onChange={(e) => setValue(e.target.value)}
       onBlur={onBlur}
-      className="w-full px-3 py-2 border border-gray-700 bg-gray-800 rounded-md shadow-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm text-white"
+      className="w-full px-3 py-2 border border-gray-700 bg-black rounded-md shadow-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm text-white"
     />
   );
 };
@@ -276,7 +276,7 @@ const App = ({
   };
 
   return (
-    <div className="container mx-auto bg-black text-white border border-gray-800 min-h-screen p-4">
+    <div className="container mx-auto bg-black text-white border border-gray-800 p-4">
       <div className="w-full flex flex-col h-full">
         <div className="grid grid-cols-2 gap-2 max-w-[350px] mb-4">
           <Button
@@ -300,15 +300,15 @@ const App = ({
             )}
           </Button>
         </div>
-        <div className="flex-1 overflow-auto">
-          <table className="w-full bg-black text-white">
+        <ScrollArea className="h-[500px] overflow-y-auto">
+          <table className="w-full bg-black text-white border-separate border-spacing-0">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id} className="bg-black">
+                <tr key={headerGroup.id} className=" bg-white/10">
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="py-2 px-4 border-b border-gray-600"
+                      className="py-2 px-4 border border-gray-700  bg-gray-800 text-center font-bold"
                     >
                       {flexRender(
                         header.column.columnDef.header,
@@ -319,18 +319,13 @@ const App = ({
                 </tr>
               ))}
             </thead>
-            <tbody className="max-h-[500px] overflow-y-auto block w-full">
+            <tbody className="bg-black">
               {table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="hover:bg-gray-700 flex w-full"
-                  style={{ display: "flex" }}
-                >
+                <tr key={row.id} className="hover:bg-gray-700">
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
-                      className="py-2 px-4 border-b border-gray-600"
-                      style={{ flex: "1 0 auto" }}
+                      className="py-2 px-4 border border-gray-700 text-center"
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
@@ -342,7 +337,7 @@ const App = ({
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollArea>
       </div>
     </div>
   );
