@@ -136,6 +136,13 @@ interface SingleProduct {
   id: string;
   name: string;
   description: string;
+  imagePool: {
+    imagePool: {
+      nodes: {
+        sourceUrl: string;
+      }[];
+    };
+  };
   tableData: {
     tableData: any;
   };

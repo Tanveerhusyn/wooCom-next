@@ -17,6 +17,7 @@ import { Product, ProductData } from "@/types";
 import FileUploader from "@/components/forms/file-uploader";
 import Gallery from "@/components/extension/gallery/Gallery";
 import SpreadSheet from "@/components/extension/spreadsheet";
+import action from "../../app/actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,6 +77,7 @@ import {
 
 import {
   getWordPressMedia,
+  triggerImagePoolUpdate,
   updateGalleryImages,
   updateProductAttributes,
   updateProductImage,
@@ -135,6 +137,22 @@ export default function ProductDetail({
     size: "",
   });
 
+  const callTriggerImagePoolUpdate = async (token) => {
+    try {
+      const response = await triggerImagePoolUpdate(
+        product?.product?.id,
+        token || data.user.accessToken,
+      );
+      if (response) {
+        console.log("Image pool updated successfully");
+        action("refreshProducts");
+      }
+    } catch (err) {
+      toast.error("Error updating image pool");
+      console.log("Error updating image pool", err);
+    }
+  };
+
   React.useEffect(() => {
     if (product) {
       if (product?.product?.galleryImages) {
@@ -171,6 +189,10 @@ export default function ProductDetail({
           })),
         );
       }
+
+      const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
+
+      callTriggerImagePoolUpdate(parsedValue.user.accessToken);
     }
   }, [product]);
 
@@ -658,16 +680,17 @@ export default function ProductDetail({
                 </CardDescription>
                 <ScrollArea className="max-h-[800px] overflow-y-auto">
                   <div className="m-2 p-2 h-full grid grid-cols-2 md:grid-cols-2 gap-5 my-4">
-                    {images.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          onClick={() => setSelectedImage(image.source_url)}
-                          className="h-auto min-h-[200px] max-h-[200px] w-[200px] object-cover max-w-full rounded-lg transition-opacity duration-200 ease-in-out cursor-pointer group-hover:opacity-50"
-                          src={image.source_url}
-                          alt="Gallery image"
-                        />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out">
-                          {/* <Button
+                    {product?.product?.imagePool?.imagePool?.nodes?.map(
+                      (image, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            onClick={() => setSelectedImage(image.sourceUrl)}
+                            className="h-auto min-h-[200px] max-h-[200px] w-[200px] object-cover max-w-full rounded-lg transition-opacity duration-200 ease-in-out cursor-pointer group-hover:opacity-50"
+                            src={image.sourceUrl}
+                            alt="Gallery image"
+                          />
+                          <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out">
+                            {/* <Button
                             variant="outline"
                             className="m-2 border border-white hover:bg-white hover:text-black min-w-[110px]"
                             onClick={() => handleAddToGallery(image)}
@@ -683,72 +706,75 @@ export default function ProductDetail({
                             <Plus className="w-6 h-6" />
                             Sizes
                           </Button> */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger className="bg-red-500" asChild>
-                              <Button
-                                className="m-2 border border-white bg-transparent hover:bg-white hover:text-black"
-                                variant="outline"
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                className="bg-red-500"
+                                asChild
                               >
-                                <HamburgerMenuIcon className="w-6 h-6" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              side="top"
-                              className="w-56 shadow-3xl bg-gray-200 text-black "
-                            >
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuGroup>
-                                <DropdownMenuItem
-                                  onClick={() => handleAddToGallery(image)}
-                                  className="cursor-pointer"
+                                <Button
+                                  className="m-2 border border-white bg-transparent hover:bg-white hover:text-black"
+                                  variant="outline"
                                 >
-                                  <ImageIcon className="mr-2 h-4 w-4" />
-                                  <span>Add to Gallery</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleAddToSizes(image)}
-                                  className="cursor-pointer"
-                                >
-                                  <SizeIcon className="mr-2 h-4 w-4" />
-                                  <span>Add to Sizes</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuGroup>
-                              <DropdownMenuSeparator />
-                              {product?.product.allPaColour && (
+                                  <HamburgerMenuIcon className="w-6 h-6" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                side="top"
+                                className="w-56 shadow-3xl bg-gray-200 text-black "
+                              >
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuGroup>
-                                  <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger className="cursor-pointer">
-                                      <UserPlus className="mr-2 h-4 w-4 " />
-                                      <span className="">Add to Colors</span>
-                                    </DropdownMenuSubTrigger>
-                                    <DropdownMenuPortal className="">
-                                      <DropdownMenuSubContent className="bg-gray-200 text-black">
-                                        {product?.product?.allPaColour.nodes.map(
-                                          (color) => (
-                                            <>
-                                              <DropdownMenuItem
-                                                onClick={() =>
-                                                  handleAddToImagesColor(
-                                                    color,
-                                                    image,
-                                                  )
-                                                }
-                                                className="cursor-pointer"
-                                              >
-                                                <Plus className="mr-2 h-4 w-4" />
-                                                <span>{color.name}</span>
-                                              </DropdownMenuItem>
-                                              <DropdownMenuSeparator />
-                                            </>
-                                          ),
-                                        )}
-                                      </DropdownMenuSubContent>
-                                    </DropdownMenuPortal>
-                                  </DropdownMenuSub>
+                                  <DropdownMenuItem
+                                    onClick={() => handleAddToGallery(image)}
+                                    className="cursor-pointer"
+                                  >
+                                    <ImageIcon className="mr-2 h-4 w-4" />
+                                    <span>Add to Gallery</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleAddToSizes(image)}
+                                    className="cursor-pointer"
+                                  >
+                                    <SizeIcon className="mr-2 h-4 w-4" />
+                                    <span>Add to Sizes</span>
+                                  </DropdownMenuItem>
                                 </DropdownMenuGroup>
-                              )}
-                              {/* <DropdownMenuSeparator />
+                                <DropdownMenuSeparator />
+                                {product?.product.allPaColour && (
+                                  <DropdownMenuGroup>
+                                    <DropdownMenuSub>
+                                      <DropdownMenuSubTrigger className="cursor-pointer">
+                                        <UserPlus className="mr-2 h-4 w-4 " />
+                                        <span className="">Add to Colors</span>
+                                      </DropdownMenuSubTrigger>
+                                      <DropdownMenuPortal className="">
+                                        <DropdownMenuSubContent className="bg-gray-200 text-black">
+                                          {product?.product?.allPaColour.nodes.map(
+                                            (color) => (
+                                              <>
+                                                <DropdownMenuItem
+                                                  onClick={() =>
+                                                    handleAddToImagesColor(
+                                                      color,
+                                                      image,
+                                                    )
+                                                  }
+                                                  className="cursor-pointer"
+                                                >
+                                                  <Plus className="mr-2 h-4 w-4" />
+                                                  <span>{color.name}</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                              </>
+                                            ),
+                                          )}
+                                        </DropdownMenuSubContent>
+                                      </DropdownMenuPortal>
+                                    </DropdownMenuSub>
+                                  </DropdownMenuGroup>
+                                )}
+                                {/* <DropdownMenuSeparator />
                               {product?.product.variations && (
                                 <DropdownMenuGroup>
                                   <DropdownMenuSub>
@@ -782,33 +808,37 @@ export default function ProductDetail({
                                   </DropdownMenuSub>
                                 </DropdownMenuGroup>
                               )} */}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                          <div className="absolute cursor-pointer top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Trash2 className="w-6 h-6 text-white hover:text-red-500" />
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Are you absolutely sure?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will
+                                    permanently delete this picture from the
+                                    pool.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction>
+                                    Continue
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </div>
-                        <div className="absolute cursor-pointer top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Trash2 className="w-6 h-6 text-white hover:text-red-500" />
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Are you absolutely sure?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. This will
-                                  permanently delete this picture from the pool.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction>Continue</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </div>
-                    ))}
+                      ),
+                    )}
                   </div>
                 </ScrollArea>
               </div>

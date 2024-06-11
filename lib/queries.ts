@@ -307,6 +307,7 @@ export async function fetchProducts(
     };
   }
 }
+``;
 
 function decodeBase64Id(encodedString) {
   // Decode the Base64 encoded string
@@ -367,6 +368,13 @@ export async function fetchProductById(id: string): Promise<ProductData> {
     id
     name
     description
+     imagePool{
+      imagePool{
+				nodes{
+					sourceUrl
+        }
+      }
+    }
     tableData{
       tableData
     }
@@ -487,6 +495,7 @@ export async function fetchProductById(id: string): Promise<ProductData> {
       cache: "no-cache",
       next: {
         revalidate: 0,
+        tags: ["refreshProducts"],
       },
     });
 
@@ -576,6 +585,69 @@ export async function updateProduct(
     return result.data.updateProduct.product;
   } catch (error) {
     console.error("Error updating product:", error);
+    return null;
+  }
+}
+
+export async function triggerImagePoolUpdate(
+  id: string,
+  token: string,
+): Promise<ProductData> {
+  console.log("triggerImagePoolUpdate", id, token);
+  const query = `
+    mutation UpdateProductImagePoolFromGallery($id: ID!) {
+      updateProductImagePoolFromGallery(input: { productId: $id }) {
+        success
+        product {
+          id
+          imagePool {
+            imagePool{
+              nodes{
+                sourceUrl
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const decodedId = decodeBase64Id(id);
+
+  const variables = {
+    id: decodedId,
+  };
+
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+      cache: "no-cache",
+      next: {
+        revalidate: 0,
+      },
+    });
+
+    const result: {
+      data: any;
+      errors?: Array<{ message: string }>;
+    } = await response.json();
+    console.log("Update Product Image Pool", result);
+
+    if (result.errors) {
+      throw new Error(result.errors.map((error) => error.message).join(", "));
+    }
+
+    return result.data.updateProductImagePoolFromGallery.product;
+  } catch (error) {
+    console.error("Error updating product image pool:", error);
     return null;
   }
 }
