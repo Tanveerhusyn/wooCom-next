@@ -47,7 +47,7 @@ export default function TextForm({ product, user, sessionUser }) {
       const result = await getAllProductCategories(token);
       setCategories(result);
     };
-    console.log(product.productCategories.nodes);
+
     setTags(product.productTags.nodes);
     setSlug(product.slug);
     setMetaDesc(product.seo.metaDesc);
@@ -60,6 +60,8 @@ export default function TextForm({ product, user, sessionUser }) {
     }
     setSelectedCat(product.productCategories.nodes[0].id);
     setParsedUser(parsedValue.user);
+
+    console.log(user, sessionUser);
   }, [product]);
 
   function decodeBase64Id(encodedString) {
@@ -74,7 +76,7 @@ export default function TextForm({ product, user, sessionUser }) {
   const handleSaveChanges = async () => {
     try {
       setLoading(true);
-      if (!data.user) {
+      if (!data?.user) {
         toast.error("You need to be logged in to save changes.");
         return;
       }
