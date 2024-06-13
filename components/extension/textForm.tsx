@@ -55,7 +55,6 @@ export default function TextForm({ product, user, sessionUser }) {
     setProductDescription(product.description);
     setProductTitle(product.name);
     const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
-    console.log("PARSED USER", parsedValue);
     if (parsedUser && parsedValue.user.accessToken) {
       fetchCat(parsedValue.user.accessToken);
     }
@@ -74,19 +73,23 @@ export default function TextForm({ product, user, sessionUser }) {
 
   const handleSaveChanges = async () => {
     try {
-      console.log("USER", data.user);
       setLoading(true);
       if (!data.user) {
         toast.error("You need to be logged in to save changes.");
         return;
       }
+
+      console.log(selectedTags, tags);
       const updateProductResponse = await updateProduct(
         product.id,
         productTitle,
         productDescription,
         slug,
         parsedUser.accessToken,
-        { append: false, nodes: selectedTags.length > 0 ? selectedTags : tags },
+        {
+          append: false,
+          nodes: selectedTags.length > 0 ? [selectedTags] : tags,
+        },
       );
 
       const decodedId = decodeBase64Id(product.id);
