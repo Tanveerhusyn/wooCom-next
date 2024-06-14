@@ -18,7 +18,6 @@ const ColorImage = memo((props) => {
     ...sanitizedProps
   } = props;
 
-  // console.log("image Inside", image);
   const {
     attributes,
     listeners,

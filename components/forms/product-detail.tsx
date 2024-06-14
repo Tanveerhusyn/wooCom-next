@@ -92,7 +92,7 @@ import toast from "react-hot-toast";
 
 export default function ProductDetail({
   product,
-  sessionUser,
+  sessionUser: data,
 }: {
   product: any;
   sessionUser: any;
@@ -125,8 +125,6 @@ export default function ProductDetail({
     (option) => option !== selectOptionTwo,
   );
 
-  const { data } = useSession();
-
   const [formData, setFormData] = useState({
     name: "",
     category: "",
@@ -141,10 +139,9 @@ export default function ProductDetail({
     try {
       const response = await triggerImagePoolUpdate(
         product?.product?.id,
-        token || data.user.accessToken,
+        token,
       );
       if (response) {
-        console.log("Image pool updated successfully");
         action("refreshProducts");
       }
     } catch (err) {
@@ -157,7 +154,6 @@ export default function ProductDetail({
     if (product) {
       if (product?.product?.galleryImages) {
         const gImages = transformImages(product?.product?.galleryImages.nodes);
-        console.log("MEDIA", gImages);
         setGalleryImages([
           {
             id: product?.product?.image?.id,
@@ -190,15 +186,15 @@ export default function ProductDetail({
         );
       }
 
-      const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
-
-      callTriggerImagePoolUpdate(parsedValue.user.accessToken);
+      console.log("Session", data);
+      if (data?.user) {
+        callTriggerImagePoolUpdate(data.user.accessToken);
+      }
     }
   }, [product]);
 
   React.useEffect(() => {
     if (files?.length > 0) {
-      console.log("FILES", files);
       //add the image file to the images useState by first converting the File object to a URL
       const file = files[0];
       const reader = new FileReader();
@@ -414,15 +410,13 @@ export default function ProductDetail({
       const selectedColours = newColours.filter(Boolean); // Only include non-empty values
       const selectedSizes = newSizes.filter(Boolean); // Only include non-empty values
 
-      console.log("Selected Colours:", selectedColours);
-      console.log("Selected Sizes:", selectedSizes);
       const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
 
       const updateProductAttributesResponse = await updateProductAttributes(
         product?.product?.id,
         selectedColours,
         selectedSizes,
-        parsedValue.user.accessToken,
+        data.user.accessToken,
       );
 
       if (updateProductAttributesResponse) {
@@ -870,7 +864,7 @@ export default function ProductDetail({
               product={product?.product}
               selectedImage={selectedSizeImage}
               setSelectedImage={setSelectedSizeImage}
-              sessionUser={sessionUser}
+              sessionUser={data}
             />
           </div>
         </div>
@@ -878,8 +872,8 @@ export default function ProductDetail({
       <TabsContent value="text" className="py-10 h-[800px] overflow-y-auto">
         <TextForm
           product={product?.product}
-          user={data.user}
-          sessionUser={sessionUser}
+          user={data?.user}
+          sessionUser={data}
         />
       </TabsContent>
       <TabsContent value="attributes" className="max-w-[54rem] p-4">

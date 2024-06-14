@@ -23,7 +23,6 @@ import { useSession } from "next-auth/react";
 import { Loader2 } from "lucide-react";
 
 export default function TextForm({ product, user, sessionUser }) {
-  console.log(product);
   const [tags, setTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -54,12 +53,11 @@ export default function TextForm({ product, user, sessionUser }) {
     setSeoTitle(product.seo.title);
     setProductDescription(product.description);
     setProductTitle(product.name);
-    const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
-    if (parsedUser && parsedValue.user.accessToken) {
-      fetchCat(parsedValue.user.accessToken);
+
+    if (sessionUser?.user.accessToken) {
+      fetchCat(sessionUser.user.accessToken);
     }
     setSelectedCat(product.productCategories.nodes[0].id);
-    setParsedUser(parsedValue.user);
 
     console.log(user, sessionUser);
   }, [product]);
@@ -76,18 +74,17 @@ export default function TextForm({ product, user, sessionUser }) {
   const handleSaveChanges = async () => {
     try {
       setLoading(true);
-      if (!data?.user) {
+      if (!sessionUser?.user) {
         toast.error("You need to be logged in to save changes.");
         return;
       }
 
-      console.log(selectedTags, tags);
       const updateProductResponse = await updateProduct(
         product.id,
         productTitle,
         productDescription,
         slug,
-        parsedUser.accessToken,
+        sessionUser.user.accessToken,
         {
           append: false,
           nodes: selectedTags.length > 0 ? [selectedTags] : tags,
@@ -111,7 +108,7 @@ export default function TextForm({ product, user, sessionUser }) {
       const updateProductCategoriesResponse = await updateProductCategory(
         decodedId,
         decodedCat,
-        parsedUser.accessToken,
+        sessionUser.user.accessToken,
       );
 
       const updateSeoFieldsResponse = await updateSeoFields(
