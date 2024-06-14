@@ -1,4 +1,3 @@
-"use client";
 import React, { useState, useMemo, useEffect } from "react";
 import {
   useReactTable,
@@ -223,8 +222,8 @@ const App = ({
   const handleStoreData = async () => {
     try {
       setLoading(true);
-
-      if (sessionUser.user.accessToken) {
+      const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
+      if (parsedValue && parsedValue.user.accessToken) {
         const dynamicValues = data.map((row) =>
           Object.keys(row).map((key) => {
             const value = row[key];
@@ -253,7 +252,7 @@ const App = ({
         const result = await updateProductTableData(
           productId,
           formattedJSON,
-          sessionUser.user.accessToken,
+          parsedValue.user.accessToken,
         );
 
         if (result) {

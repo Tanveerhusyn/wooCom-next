@@ -1,57 +1,45 @@
-"use client";
-import { useEffect, useState } from "react";
 import BreadCrumb from "@/components/breadcrumb";
 import { columns } from "@/components/tables/products-table/columns";
 import { ProductTable } from "@/components/tables/products-table/product-table";
 import { buttonVariants } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
-import { Product } from "@/constants/data";
+import { Employee, Product } from "@/constants/data";
 import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { fetchProducts } from "@/lib/queries";
 import { useSession } from "next-auth/react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 const breadcrumbItems = [{ title: "Products", link: "/dashboard/products" }];
 
-type ParamsProps = {
+type paramsProps = {
   searchParams: {
     [key: string]: string | string[] | undefined;
   };
 };
 
-const ProductsPage = ({ searchParams }: ParamsProps) => {
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(Number(searchParams.page) || 1);
-  const [pageLimit, setPageLimit] = useState(Number(searchParams.limit) || 10);
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [pageCount, setPageCount] = useState(0);
-  const { data: session } = useSession();
+export default async function page({ searchParams }: paramsProps) {
+  const page = Number(searchParams.page) || 1;
+  const pageLimit = Number(searchParams.limit) || 10;
+  const country = searchParams.search || null;
+  const offset = (page - 1) * pageLimit;
 
-  useEffect(() => {
-    const fetchProductData = async () => {
-      setLoading(true);
-      const offset = (page - 1) * pageLimit;
-      const country = searchParams.search || null;
-      const fetchedProducts = await fetchProducts(10, String(offset));
+  const allProducts = await fetchProducts(10, String(offset));
 
-      setAllProducts(fetchedProducts.products.nodes);
-      setTotalUsers(1000); // Assuming total users are 1000 as per the commented code
-      setPageCount(Math.ceil(1000 / pageLimit));
-      setLoading(false);
-    };
+  const user = await getServerSession(authOptions);
+  console.log("USERR", user);
 
-    fetchProductData();
-  }, [
-    page,
-    pageLimit,
-    searchParams.page,
-    searchParams.limit,
-    searchParams.search,
-  ]);
-
+  // const res = await fetch(
+  //   `https://api.slingacademy.com/v1/sample-data/products?offset=${offset}&limit=${pageLimit}` +
+  //     (country ? `&search=${country}` : ""),
+  // );
+  // const employeeRes = await res.json();
+  // const totalUsers = employeeRes.total_products; //1000
+  // const pageCount = Math.ceil(totalUsers / pageLimit);
+  // const products: Product[] = employeeRes.products;
   return (
     <>
       <div className="flex-1 space-y-4  p-4 md:p-8 pt-6">
@@ -72,19 +60,15 @@ const ProductsPage = ({ searchParams }: ParamsProps) => {
         </div>
         <Separator />
 
-        {!loading && (
-          <ProductTable
-            searchKey="product"
-            pageNo={page}
-            columns={columns}
-            totalUsers={totalUsers}
-            data={allProducts}
-            pageCount={pageCount}
-          />
-        )}
+        <ProductTable
+          searchKey="product"
+          pageNo={page}
+          columns={columns}
+          totalUsers={1000}
+          data={allProducts.products.nodes}
+          pageCount={allProducts.products.nodes.length}
+        />
       </div>
     </>
   );
-};
-
-export default ProductsPage;
+}

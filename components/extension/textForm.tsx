@@ -23,6 +23,7 @@ import { useSession } from "next-auth/react";
 import { Loader2 } from "lucide-react";
 
 export default function TextForm({ product, user, sessionUser }) {
+  console.log(product);
   const [tags, setTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -46,20 +47,20 @@ export default function TextForm({ product, user, sessionUser }) {
       const result = await getAllProductCategories(token);
       setCategories(result);
     };
-
+    console.log(product.productCategories.nodes);
     setTags(product.productTags.nodes);
     setSlug(product.slug);
     setMetaDesc(product.seo.metaDesc);
     setSeoTitle(product.seo.title);
     setProductDescription(product.description);
     setProductTitle(product.name);
-
-    if (sessionUser?.user.accessToken) {
-      fetchCat(sessionUser.user.accessToken);
+    const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
+    console.log("PARSED USER", parsedValue);
+    if (parsedUser && parsedValue.user.accessToken) {
+      fetchCat(parsedValue.user.accessToken);
     }
     setSelectedCat(product.productCategories.nodes[0].id);
-
-    console.log(user, sessionUser);
+    setParsedUser(parsedValue.user);
   }, [product]);
 
   function decodeBase64Id(encodedString) {
@@ -73,22 +74,19 @@ export default function TextForm({ product, user, sessionUser }) {
 
   const handleSaveChanges = async () => {
     try {
+      console.log("USER", data.user);
       setLoading(true);
-      if (!sessionUser?.user) {
+      if (!data.user) {
         toast.error("You need to be logged in to save changes.");
         return;
       }
-
       const updateProductResponse = await updateProduct(
         product.id,
         productTitle,
         productDescription,
         slug,
-        sessionUser.user.accessToken,
-        {
-          append: false,
-          nodes: selectedTags.length > 0 ? [selectedTags] : tags,
-        },
+        parsedUser.accessToken,
+        { append: false, nodes: selectedTags.length > 0 ? selectedTags : tags },
       );
 
       const decodedId = decodeBase64Id(product.id);
@@ -108,7 +106,7 @@ export default function TextForm({ product, user, sessionUser }) {
       const updateProductCategoriesResponse = await updateProductCategory(
         decodedId,
         decodedCat,
-        sessionUser.user.accessToken,
+        parsedUser.accessToken,
       );
 
       const updateSeoFieldsResponse = await updateSeoFields(
