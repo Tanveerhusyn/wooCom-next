@@ -892,28 +892,6 @@ export default function ProductDetail({
             )}
           </Button>
         </div>
-        {/* <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center w-full max-w-[300px]">
-            <Label htmlFor="global-dropdown" className="w-[50%]">
-              {selectOptionOne || "Select Option"}
-            </Label>
-            <Select onValueChange={(value) => setSelectOptionOne(value)}>
-              <SelectTrigger className="w-[50%]">
-                <SelectValue placeholder="Select an option" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Options</SelectLabel>
-                  {filteredOptionsOne.map((option, idx) => (
-                    <SelectItem key={idx} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-        </div> */}
 
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 mb-2">
@@ -929,13 +907,32 @@ export default function ProductDetail({
               />
             </div>
           ))}
-          {newColours.map((value, idx) => (
-            <div key={idx} className="space-y-2">
+          {(newColours.length > 0 &&
+            newColours.map((value, idx) => (
+              <div key={idx} className="space-y-2">
+                <Select
+                  onValueChange={(newValue) => {
+                    const updatedColours = [...newColours];
+                    updatedColours[idx] = newValue;
+                    setNewColours(updatedColours);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select new colour value" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Options</SelectLabel>
+                      {renderSelectContent("Colour")}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            ))) || (
+            <div className="space-y-2">
               <Select
-                value={value}
                 onValueChange={(newValue) => {
-                  const updatedColours = [...newColours];
-                  updatedColours[idx] = newValue;
+                  const updatedColours = [newValue];
                   setNewColours(updatedColours);
                 }}
               >
@@ -950,7 +947,7 @@ export default function ProductDetail({
                 </SelectContent>
               </Select>
             </div>
-          ))}
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4 mt-4">
@@ -967,13 +964,32 @@ export default function ProductDetail({
               />
             </div>
           ))}
-          {newSizes.map((value, idx) => (
-            <div key={idx} className="space-y-2">
+          {(newSizes.length > 0 &&
+            newSizes.map((value, idx) => (
+              <div key={idx} className="space-y-2">
+                <Select
+                  onValueChange={(newValue) => {
+                    const updatedSizes = [...newSizes];
+                    updatedSizes[idx] = newValue;
+                    setNewSizes(updatedSizes);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select new size value" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Options</SelectLabel>
+                      {renderSelectContent("Size")}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            ))) || (
+            <div className="space-y-2">
               <Select
-                value={value}
                 onValueChange={(newValue) => {
-                  const updatedSizes = [...newSizes];
-                  updatedSizes[idx] = newValue;
+                  const updatedSizes = [newValue];
                   setNewSizes(updatedSizes);
                 }}
               >
@@ -988,7 +1004,7 @@ export default function ProductDetail({
                 </SelectContent>
               </Select>
             </div>
-          ))}
+          )}
         </div>
       </TabsContent>
     </Tabs>
