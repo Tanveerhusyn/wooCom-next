@@ -54,7 +54,8 @@ export default function TextForm({ product, user, sessionUser }) {
     setSeoTitle(product.seo.title);
     setProductDescription(product.description);
     setProductTitle(product.name);
-    const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
+    const parsedValue = sessionUser ? sessionUser : {};
+
     console.log("PARSED USER", parsedValue);
     if (parsedUser && parsedValue.user.accessToken) {
       fetchCat(parsedValue.user.accessToken);

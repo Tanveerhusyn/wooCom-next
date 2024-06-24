@@ -155,7 +155,7 @@ const App = ({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (product.tableData) {
+    if (product?.tableData) {
       const first = product.tableData?.tableData?.replace(/`/g, '"');
       if (first) {
         const parsedTable = JSON.parse(first);
@@ -222,7 +222,8 @@ const App = ({
   const handleStoreData = async () => {
     try {
       setLoading(true);
-      const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
+      const parsedValue = sessionUser ? sessionUser : {};
+
       if (parsedValue && parsedValue.user.accessToken) {
         const dynamicValues = data.map((row) =>
           Object.keys(row).map((key) => {

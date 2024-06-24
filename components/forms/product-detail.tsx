@@ -12,6 +12,7 @@ import {
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import action from "@/app/actions";
 import { Textarea } from "../ui/textarea";
 import { Product, ProductData } from "@/types";
 import FileUploader from "@/components/forms/file-uploader";
@@ -145,7 +146,8 @@ export default function ProductDetail({
       );
       if (response) {
         console.log("Image pool updated successfully");
-        // action("refreshProducts");
+        // window.location.reload();
+        // action("refreshProduct");
       }
     } catch (err) {
       toast.error("Error updating image pool");
@@ -189,8 +191,8 @@ export default function ProductDetail({
           })),
         );
       }
-
-      const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
+      console.log("SESSSSSION", product);
+      const parsedValue = sessionUser ? sessionUser : {};
 
       callTriggerImagePoolUpdate(parsedValue.user.accessToken);
     }
@@ -258,13 +260,13 @@ export default function ProductDetail({
           </SelectItem>
         ));
       case "Colour":
-        return product.globalColors.nodes.map((item, idx) => (
+        return product?.globalColors?.nodes?.map((item, idx) => (
           <SelectItem key={idx} value={item.name}>
             {item.name}
           </SelectItem>
         ));
       case "Size":
-        return product.globalSizes.nodes.map((item, idx) => (
+        return product?.globalSizes?.nodes?.map((item, idx) => (
           <SelectItem key={idx} value={item.name}>
             {item.name}
           </SelectItem>
@@ -288,7 +290,11 @@ export default function ProductDetail({
   };
 
   const handleAddToSizes = (image: any) => {
-    setSelectedSizeImage(image);
+    console.log("size", image);
+    setSelectedSizeImage({
+      id: 1,
+      source_url: image.sourceUrl,
+    });
   };
 
   const handleAddToGallery = (img: any) => {
@@ -416,7 +422,7 @@ export default function ProductDetail({
 
       console.log("Selected Colours:", selectedColours);
       console.log("Selected Sizes:", selectedSizes);
-      const parsedValue = sessionUser ? JSON.parse(sessionUser.value) : {};
+      const parsedValue = sessionUser ? sessionUser : {};
 
       const updateProductAttributesResponse = await updateProductAttributes(
         product?.product?.id,
@@ -897,28 +903,59 @@ export default function ProductDetail({
           <div className="col-span-2 mb-2">
             <Label>Colour</Label>
           </div>
-          {existingColours.map((value, idx) => (
-            <div key={idx} className="space-y-2">
-              <Input
-                id={`input-existing-colour-${idx}`}
-                value={value}
-                placeholder={value}
-                readOnly
-              />
-            </div>
-          ))}
-          {(newColours.length > 0 &&
-            newColours.map((value, idx) => (
-              <div key={idx} className="space-y-2">
+          {existingColours.length > 0 ? (
+            <>
+              {existingColours.map((value, idx) => (
+                <React.Fragment key={idx}>
+                  <div className="space-y-2">
+                    <Input
+                      id={`input-existing-colour-${idx}`}
+                      value={value}
+                      placeholder={value}
+                      readOnly
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Select
+                      onValueChange={(newValue) => {
+                        const updatedColours = [...newColours];
+                        updatedColours[idx] = newValue;
+                        setNewColours(updatedColours);
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue>
+                          {newColours[idx] || "Select new colour value"}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Options</SelectLabel>
+                          {renderSelectContent("Colour")}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </React.Fragment>
+              ))}
+            </>
+          ) : (
+            <>
+              <div className="col-span-2 text-white">
+                No existing colours available.
+              </div>
+              <div className="space-y-2">
                 <Select
                   onValueChange={(newValue) => {
                     const updatedColours = [...newColours];
-                    updatedColours[idx] = newValue;
+                    updatedColours[0] = newValue;
                     setNewColours(updatedColours);
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select new colour value" />
+                    <SelectValue>
+                      {newColours[0] || "Select new colour value"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -928,25 +965,7 @@ export default function ProductDetail({
                   </SelectContent>
                 </Select>
               </div>
-            ))) || (
-            <div className="space-y-2">
-              <Select
-                onValueChange={(newValue) => {
-                  const updatedColours = [newValue];
-                  setNewColours(updatedColours);
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a colour" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Options</SelectLabel>
-                    {renderSelectContent("Colour")}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
+            </>
           )}
         </div>
 
@@ -954,28 +973,59 @@ export default function ProductDetail({
           <div className="col-span-2 mb-2">
             <Label>Size</Label>
           </div>
-          {existingSizes.map((value, idx) => (
-            <div key={idx} className="space-y-2">
-              <Input
-                id={`input-existing-size-${idx}`}
-                value={value}
-                placeholder={value}
-                readOnly
-              />
-            </div>
-          ))}
-          {(newSizes.length > 0 &&
-            newSizes.map((value, idx) => (
-              <div key={idx} className="space-y-2">
+          {existingSizes.length > 0 ? (
+            <>
+              {existingSizes.map((value, idx) => (
+                <React.Fragment key={idx}>
+                  <div className="space-y-2">
+                    <Input
+                      id={`input-existing-size-${idx}`}
+                      value={value}
+                      placeholder={value}
+                      readOnly
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Select
+                      onValueChange={(newValue) => {
+                        const updatedSizes = [...newSizes];
+                        updatedSizes[idx] = newValue;
+                        setNewSizes(updatedSizes);
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue>
+                          {newSizes[idx] || "Select new size value"}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Options</SelectLabel>
+                          {renderSelectContent("Size")}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </React.Fragment>
+              ))}
+            </>
+          ) : (
+            <>
+              <div className="col-span-2 text-white">
+                No existing sizes available.
+              </div>
+              <div className="space-y-2">
                 <Select
                   onValueChange={(newValue) => {
                     const updatedSizes = [...newSizes];
-                    updatedSizes[idx] = newValue;
+                    updatedSizes[0] = newValue;
                     setNewSizes(updatedSizes);
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select new size value" />
+                    <SelectValue>
+                      {newSizes[0] || "Select new size value"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -985,25 +1035,7 @@ export default function ProductDetail({
                   </SelectContent>
                 </Select>
               </div>
-            ))) || (
-            <div className="space-y-2">
-              <Select
-                onValueChange={(newValue) => {
-                  const updatedSizes = [newValue];
-                  setNewSizes(updatedSizes);
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a size" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Options</SelectLabel>
-                    {renderSelectContent("Size")}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
+            </>
           )}
         </div>
       </TabsContent>

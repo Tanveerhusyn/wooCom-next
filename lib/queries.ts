@@ -509,9 +509,9 @@ export async function fetchProductById(id: string): Promise<ProductData> {
         query,
         variables: { productId: decodedid },
       }),
-      cache: "no-cache",
       next: {
         revalidate: 0,
+        tags: ["refreshProduct"],
       },
     });
 

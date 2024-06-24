@@ -2,12 +2,13 @@ import BreadCrumb from "@/components/breadcrumb";
 import { ProductForm } from "@/components/forms/product-form";
 import ProductDetail from "@/components/forms/product-detail";
 import React from "react";
-import { fetchProductById } from "@/lib/queries";
+import { fetchProductById, triggerImagePoolUpdate } from "@/lib/queries";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import action from "@/app/actions";
 
 export default async function Page({ params }) {
-  const user = getServerSession(authOptions);
+  const user = await getServerSession(authOptions);
 
   console.log("USER FROM SESSION", user);
 
