@@ -404,6 +404,7 @@ export async function fetchProductById(id: string): Promise<ProductData> {
     attributes {
       edges{
         node{
+          name
 					options
         }
       }

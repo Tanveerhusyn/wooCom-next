@@ -234,11 +234,15 @@ export default function ProductDetail({
       //   );
       case "Colour":
         return (
-          product?.product?.allPaColour?.nodes.map((item) => item.name) || []
+          product?.product?.attributes?.edges[0]?.node?.options?.map(
+            (item) => item,
+          ) || []
         );
       case "Size":
         return (
-          product?.product?.allPaSize?.nodes.map((item) => item.name) || []
+          product?.product?.attributes?.edges[1]?.node?.options?.map(
+            (item) => item,
+          ) || []
         );
       default:
         return [];
