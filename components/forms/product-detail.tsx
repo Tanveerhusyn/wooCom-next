@@ -438,8 +438,12 @@ export default function ProductDetail({
         return;
       }
 
+      console.log(replacements);
+
       // Use the selected values from state
-      const selectedColours = Object.values(replacements.colour);
+      const selectedColours = Object.values(
+        replacements.colour || replacements.color,
+      );
       const selectedSizes = Object.values(replacements.size);
 
       console.log("Selected Colours:", selectedColours);
