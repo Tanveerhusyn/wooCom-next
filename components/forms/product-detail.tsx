@@ -411,6 +411,24 @@ export default function ProductDetail({
     Array(existingSizes.length).fill(""),
   );
 
+  const [colours, setColours] = useState(getExistingValues("Colour"));
+  const [sizes, setSizes] = useState(getExistingValues("Size"));
+
+  const handleValueChange = (option, idx, newValue) => {
+    if (option === "Colour") {
+      const updatedColours = [...colours];
+      updatedColours[idx] = newValue;
+      setColours(updatedColours);
+    } else if (option === "Size") {
+      const updatedSizes = [...sizes];
+      updatedSizes[idx] = newValue;
+      setSizes(updatedSizes);
+    }
+  };
+
+  const [mappings, setMappings] = useState({});
+  const [replacements, setReplacements] = useState({});
+
   const handleStoreAttributes = async () => {
     try {
       console.log("USER", data.user);
@@ -421,8 +439,8 @@ export default function ProductDetail({
       }
 
       // Use the selected values from state
-      const selectedColours = newColours.filter(Boolean); // Only include non-empty values
-      const selectedSizes = newSizes.filter(Boolean); // Only include non-empty values
+      const selectedColours = Object.values(replacements.colour);
+      const selectedSizes = Object.values(replacements.size);
 
       console.log("Selected Colours:", selectedColours);
       console.log("Selected Sizes:", selectedSizes);
@@ -448,20 +466,28 @@ export default function ProductDetail({
       toast.error("An error occurred. Please try again later.");
     }
   };
+  const productAttributes = product?.product?.attributes?.edges.reduce(
+    (acc, { node }) => {
+      acc[node.name.toLowerCase()] = node.options;
+      return acc;
+    },
+    {},
+  );
 
-  const [colours, setColours] = useState(getExistingValues("Colour"));
-  const [sizes, setSizes] = useState(getExistingValues("Size"));
+  const globalAttributes = {
+    colour: product?.globalColors?.nodes.map((node) => node.name),
+    size: product?.globalSizes?.nodes.map((node) => node.name),
+  };
 
-  const handleValueChange = (option, idx, newValue) => {
-    if (option === "Colour") {
-      const updatedColours = [...colours];
-      updatedColours[idx] = newValue;
-      setColours(updatedColours);
-    } else if (option === "Size") {
-      const updatedSizes = [...sizes];
-      updatedSizes[idx] = newValue;
-      setSizes(updatedSizes);
-    }
+  const handleMappingChange = (attribute, value) => {
+    setMappings((prev) => ({ ...prev, [attribute]: value }));
+  };
+
+  const handleReplacementChange = (attribute, originalValue, newValue) => {
+    setReplacements((prev) => ({
+      ...prev,
+      [attribute]: { ...prev[attribute], [originalValue]: newValue },
+    }));
   };
 
   return (
@@ -893,154 +919,102 @@ export default function ProductDetail({
         />
       </TabsContent>
       <TabsContent value="attributes" className="max-w-[54rem] p-4">
-        <div className="flex items-center justify-between mb-4">
-          <Button onClick={handleStoreAttributes}>
-            {attLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "Save Attributes"
+        <div className="p-4 bg-black text-white min-h-screen w-full">
+          {product && productAttributes && (
+            <Button
+              onClick={() => handleStoreAttributes()}
+              className=" text-black mb-4"
+
+              // disabled={attLoading}
+            >
+              {attLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          )}
+          <div className="max-w-4xl mx-auto">
+            {(product &&
+              productAttributes &&
+              Object.entries(productAttributes).map(([attribute, values]) => (
+                <div
+                  key={attribute}
+                  className="mb-8 grid grid-cols-2 gap-4 items-start"
+                >
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 capitalize text-white">
+                      {attribute}
+                    </h3>
+                    {values.map((value, index) => (
+                      <input
+                        key={index}
+                        type="text"
+                        value={value}
+                        readOnly
+                        className="block w-full p-2 mb-2 bg-black border border-gray-800 rounded text-white"
+                      />
+                    ))}
+                  </div>
+                  <div>
+                    <Select
+                      value={mappings[attribute] || ""}
+                      onValueChange={(value) =>
+                        handleMappingChange(attribute, value)
+                      }
+                    >
+                      <SelectTrigger className="w-full mb-2 bg-black border-gray-800 text-white">
+                        <SelectValue
+                          placeholder={`Select ${attribute} mapping`}
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black border-gray-800 text-white">
+                        {Object.keys(globalAttributes).map((key) => (
+                          <SelectItem
+                            key={key}
+                            value={key}
+                            className="hover:bg-gray-800"
+                          >
+                            {key.charAt(0).toUpperCase() + key.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {mappings[attribute] &&
+                      values.map((value, index) => (
+                        <Select
+                          key={index}
+                          value={replacements[attribute]?.[value] || ""}
+                          onValueChange={(newValue) =>
+                            handleReplacementChange(attribute, value, newValue)
+                          }
+                        >
+                          <SelectTrigger className="w-full mt-2 bg-black border-gray-800 text-white">
+                            <SelectValue placeholder={`Replace ${value}`} />
+                          </SelectTrigger>
+                          <SelectContent className="bg-black border-gray-800 text-white">
+                            {globalAttributes[mappings[attribute]].map(
+                              (option) => (
+                                <SelectItem
+                                  key={option}
+                                  value={option}
+                                  className="hover:bg-gray-800"
+                                >
+                                  {option}
+                                </SelectItem>
+                              ),
+                            )}
+                          </SelectContent>
+                        </Select>
+                      ))}
+                  </div>
+                </div>
+              ))) || (
+              <h3 className="text-lg font-semibold mb-2 capitalize text-white">
+                No local attributes found
+              </h3>
             )}
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2 mb-2">
-            <Label>Colour</Label>
           </div>
-          {existingColours.length > 0 ? (
-            <>
-              {existingColours.map((value, idx) => (
-                <React.Fragment key={idx}>
-                  <div className="space-y-2">
-                    <Input
-                      id={`input-existing-colour-${idx}`}
-                      value={value}
-                      placeholder={value}
-                      readOnly
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Select
-                      onValueChange={(newValue) => {
-                        const updatedColours = [...newColours];
-                        updatedColours[idx] = newValue;
-                        setNewColours(updatedColours);
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue>
-                          {newColours[idx] || "Select new colour value"}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>Options</SelectLabel>
-                          {renderSelectContent("Colour")}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </React.Fragment>
-              ))}
-            </>
-          ) : (
-            <>
-              <div className="col-span-2 text-white">
-                No existing colours available.
-              </div>
-              <div className="space-y-2">
-                <Select
-                  onValueChange={(newValue) => {
-                    const updatedColours = [...newColours];
-                    updatedColours[0] = newValue;
-                    setNewColours(updatedColours);
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      {newColours[0] || "Select new colour value"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Options</SelectLabel>
-                      {renderSelectContent("Colour")}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          <div className="col-span-2 mb-2">
-            <Label>Size</Label>
-          </div>
-          {existingSizes.length > 0 ? (
-            <>
-              {existingSizes.map((value, idx) => (
-                <React.Fragment key={idx}>
-                  <div className="space-y-2">
-                    <Input
-                      id={`input-existing-size-${idx}`}
-                      value={value}
-                      placeholder={value}
-                      readOnly
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Select
-                      onValueChange={(newValue) => {
-                        const updatedSizes = [...newSizes];
-                        updatedSizes[idx] = newValue;
-                        setNewSizes(updatedSizes);
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue>
-                          {newSizes[idx] || "Select new size value"}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>Options</SelectLabel>
-                          {renderSelectContent("Size")}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </React.Fragment>
-              ))}
-            </>
-          ) : (
-            <>
-              <div className="col-span-2 text-white">
-                No existing sizes available.
-              </div>
-              <div className="space-y-2">
-                <Select
-                  onValueChange={(newValue) => {
-                    const updatedSizes = [...newSizes];
-                    updatedSizes[0] = newValue;
-                    setNewSizes(updatedSizes);
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      {newSizes[0] || "Select new size value"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Options</SelectLabel>
-                      {renderSelectContent("Size")}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
-          )}
         </div>
       </TabsContent>
     </Tabs>
