@@ -442,9 +442,11 @@ export default function ProductDetail({
 
       // Use the selected values from state
       const selectedColours = Object.values(
-        replacements.colour || replacements.color,
+        replacements.colour || replacements.color || replacements.pa_colour,
       );
-      const selectedSizes = Object.values(replacements.size);
+      const selectedSizes = Object.values(
+        replacements.size || replacements.pa_size,
+      );
 
       console.log("Selected Colours:", selectedColours);
       console.log("Selected Sizes:", selectedSizes);
@@ -948,7 +950,11 @@ export default function ProductDetail({
                 >
                   <div>
                     <h3 className="text-lg font-semibold mb-2 capitalize text-white">
-                      {attribute}
+                      {attribute == "pa_colour"
+                        ? "Colour"
+                        : attribute == "pa_size"
+                        ? "Size"
+                        : attribute}
                     </h3>
                     {values.map((value, index) => (
                       <input

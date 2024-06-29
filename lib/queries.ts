@@ -676,21 +676,29 @@ export async function updateProductAttributes(
   token: string,
 ): Promise<ProductData> {
   const query = `
-    mutation UpdateProductAttributes($id: ID!, $colours: [String], $sizes: [String]) {
-      updateProductAttributes(input: { productId: $id, colours: $colours, sizes: $sizes }) {
-        success
-      }
-    }
+    mutation UpdateProductAttributes($productId: ID!, $attributes: [AttributeInput]!) {
+  updateProductAttributes(input: {productId: $productId, attributes: $attributes}) {
+    success
+    message
+  }
+}
   `;
 
   const decodedId = decodeBase64Id(id);
 
   const variables = {
-    id: decodedId,
-    colours,
-    sizes,
+    productId: decodedId,
+    attributes: [
+      {
+        name: "colour",
+        values: [...colours],
+      },
+      {
+        name: "size",
+        values: [...sizes],
+      },
+    ],
   };
-
   console.log("Attributes", variables);
 
   try {
