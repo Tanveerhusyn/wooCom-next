@@ -676,10 +676,11 @@ export async function updateProductAttributes(
   token: string,
 ): Promise<ProductData> {
   const query = `
-    mutation UpdateProductAttributes($productId: ID!, $attributes: [AttributeInput]!) {
+   mutation UpdateProductAttributes($productId: ID!, $attributes: [AttributeInput]!) {
   updateProductAttributes(input: {productId: $productId, attributes: $attributes}) {
     success
     message
+    logs
   }
 }
   `;
