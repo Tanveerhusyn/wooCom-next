@@ -386,7 +386,7 @@ export async function fetchProductById(id: string): Promise<ProductData> {
     name
     description
      imagePool{
-      imagePool{
+      imagePool(first: 100){
 				nodes{
 					sourceUrl
         }
@@ -665,6 +665,71 @@ export async function triggerImagePoolUpdate(
     return result.data.updateProductImagePoolFromGallery.product;
   } catch (error) {
     console.error("Error updating product image pool:", error);
+    return null;
+  }
+}
+
+export async function addImageToProductPoolByUrl(
+  id: string,
+  token: string,
+  imageUrl: string,
+): Promise<ProductData> {
+  console.log("addImageToProductPoolByUrl", id, imageUrl);
+  const query = `
+    mutation AddImageToProductPoolByUrl($id: ID!, $imageUrl: String!) {
+      addImageToProductPoolByUrl(input: { productId: $id, imageUrl: $imageUrl }) {
+        success
+        product {
+          id
+          imagePool {
+            imagePool {
+              nodes {
+                sourceUrl
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const decodedId = decodeBase64Id(id);
+
+  const variables = {
+    id: decodedId,
+    imageUrl: imageUrl,
+  };
+
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+      cache: "no-cache",
+      next: {
+        revalidate: 0,
+      },
+    });
+
+    const result: {
+      data: any;
+      errors?: Array<{ message: string }>;
+    } = await response.json();
+    console.log("Add Image to Product Pool by URL", result);
+
+    if (result.errors) {
+      throw new Error(result.errors.map((error) => error.message).join(", "));
+    }
+
+    return result.data.addImageToProductPoolByUrl.product;
+  } catch (error) {
+    console.error("Error adding image to product pool by URL:", error);
     return null;
   }
 }

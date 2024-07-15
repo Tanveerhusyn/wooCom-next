@@ -83,6 +83,7 @@ import {
   updateProductAttributes,
   updateProductImage,
   uploadImage,
+  addImageToProductPoolByUrl,
 } from "@/lib/queries";
 import { useSession } from "next-auth/react";
 import { Plus, Trash, Trash2 } from "lucide-react";
@@ -90,6 +91,7 @@ import { HiPhoto } from "react-icons/hi2";
 import { HamburgerMenuIcon, SizeIcon } from "@radix-ui/react-icons";
 import { Badge } from "../ui/badge";
 import toast from "react-hot-toast";
+import ImagePickerModal from "@/components/extension/gallery/ImagePickerModal";
 
 export default function ProductDetail({
   product,
@@ -361,12 +363,8 @@ export default function ProductDetail({
     });
   };
   const handleSaveChanges = async () => {
+    console.log("FILES", files);
     //@ts-ignore
-    // const result = await uploadImage(files[0], data.user.accessToken);
-    // console.log("IMage UPload", result);
-    // if (result) {
-    //   console.log("Image uploaded successfully");
-    // }
 
     try {
       setLoading(true);
@@ -414,21 +412,23 @@ export default function ProductDetail({
   const [colours, setColours] = useState(getExistingValues("Colour"));
   const [sizes, setSizes] = useState(getExistingValues("Size"));
 
-  const handleValueChange = (option, idx, newValue) => {
-    if (option === "Colour") {
-      const updatedColours = [...colours];
-      updatedColours[idx] = newValue;
-      setColours(updatedColours);
-    } else if (option === "Size") {
-      const updatedSizes = [...sizes];
-      updatedSizes[idx] = newValue;
-      setSizes(updatedSizes);
-    }
-  };
-
   const [mappings, setMappings] = useState({});
   const [replacements, setReplacements] = useState({});
 
+  const handleCustomImageUpload = async (files) => {
+    const result = await uploadImage(files[0], data.user.accessToken);
+    console.log("Image Upload", result);
+    if (result) {
+      console.log("Image uploaded successfully");
+
+      await addImageToProductPoolByUrl(
+        product?.product?.id,
+        data.user.accessToken,
+        result.source_url,
+      );
+    }
+    // Note: The setTimeout is removed as it's not necessary for actual uploads
+  };
   const handleStoreAttributes = async () => {
     try {
       console.log("USER", data.user);
@@ -716,7 +716,8 @@ export default function ProductDetail({
               </div>
 
               <div className="flex flex-col">
-                <FileUploader files={files} setFiles={setFiles} />
+                <ImagePickerModal onUpload={handleCustomImageUpload} />
+                {/* <FileUploader files={files} setFiles={setFiles} /> */}
                 <CardDescription className="m-2 p-2">
                   Choose an Image from the Pool
                 </CardDescription>

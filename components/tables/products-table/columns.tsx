@@ -5,6 +5,32 @@ import { ColumnDef } from "@tanstack/react-table";
 import { CellAction } from "./cell-action";
 import { Badge } from "@/components/ui/badge";
 
+function decodeBase64Id(encodedString) {
+  try {
+    // Decode the URL-encoded string
+    const decodedUrlString = decodeURIComponent(encodedString);
+
+    // Validate the Base64 encoded string
+    if (!/^[A-Za-z0-9+/=]+$/.test(decodedUrlString)) {
+      throw new Error("Invalid Base64 string");
+    }
+
+    // Decode the Base64 encoded string
+    const decodedString = atob(decodedUrlString);
+
+    // The decoded string is in the format `product:97`, split it to get the ID
+    const parts = decodedString.split(":");
+    if (parts.length !== 2 || parts[0] !== "product") {
+      throw new Error("Invalid format after decoding");
+    }
+
+    return parts[1];
+  } catch (error) {
+    console.error("Failed to decode Base64 string:", error);
+    return null; // or handle the error as needed
+  }
+}
+
 export const columns: ColumnDef<Product>[] = [
   {
     id: "select",
@@ -28,6 +54,10 @@ export const columns: ColumnDef<Product>[] = [
   {
     accessorKey: "id",
     header: "ID",
+    cell: ({ row }) => {
+      const base64Id = decodeBase64Id(row.original.id);
+      return <div>{base64Id}</div>;
+    },
   },
 
   {
