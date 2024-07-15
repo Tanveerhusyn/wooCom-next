@@ -56,16 +56,16 @@ const BodyPartCell = ({ value, onChange }) => {
   );
 };
 
-const HeaderSelect = ({ value, onChange }) => {
+const HeaderSelect = ({ value, onChange, opt }) => {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="block w-full px-3 py-2 border border-gray-700 bg-black rounded-md shadow-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm text-white"
     >
-      {OPTIONS.map((option) => (
-        <option key={option.value} value={option.value} className="text-white">
-          {option.label}
+      {opt.map((option) => (
+        <option key={option.name} value={option.name} className="text-white">
+          {option.name}
         </option>
       ))}
     </select>
@@ -98,9 +98,11 @@ const App = ({
   productId,
   product,
   selectedImage,
+  globalSizes,
   sessionUser,
   setSelectedImage,
 }) => {
+  console.log(globalSizes);
   const columns = useMemo(
     () => [
       {
@@ -115,16 +117,17 @@ const App = ({
           />
         ),
       },
-      ...OPTIONS.map((option) => ({
+      ...globalSizes?.map((option) => ({
         header: ({ column }) => (
           <HeaderSelect
-            value={option.value}
+            opt={globalSizes}
+            value={option.name}
             onChange={(newValue) =>
               table.options.meta?.updateData(-1, column.id, newValue)
             }
           />
         ),
-        accessorKey: option.value,
+        accessorKey: option.name,
         cell: ({ getValue, row: { index }, column: { id }, table }) => (
           <EditableCell
             initialValue={getValue()}
@@ -293,7 +296,11 @@ const App = ({
             <Plus className="w-5 h-5" />
             Add New
           </Button>
-          <Button onClick={handleStoreData} className="w-40">
+          <Button
+            disabled={!selectedImage?.id}
+            onClick={handleStoreData}
+            className="w-40"
+          >
             {loading ? (
               <Loader2 className="w-6 h-6 animate-spin" />
             ) : (

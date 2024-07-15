@@ -911,6 +911,7 @@ export default function ProductDetail({
             <SpreadSheet
               productId={product?.product?.id}
               product={product?.product}
+              globalSizes={product?.globalSizes?.nodes}
               selectedImage={selectedSizeImage}
               setSelectedImage={setSelectedSizeImage}
               sessionUser={sessionUser}
