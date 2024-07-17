@@ -280,7 +280,7 @@ const App = ({
   };
 
   return (
-    <div className="container mx-auto bg-black text-white border border-gray-800 p-4">
+    <div className="container mx-auto bg-black text-white border border-gray-800 p-4 w-full min-w-[800px]">
       <div className="w-full flex flex-col h-full">
         <div className="grid grid-cols-2 gap-2 max-w-[350px] mb-4">
           <Button

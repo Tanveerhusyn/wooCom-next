@@ -496,6 +496,13 @@ export default function ProductDetail({
     }));
   };
 
+  const localSizes = product?.product?.attributes?.edges[1]?.node?.options?.map(
+    (node, idx) => ({
+      name: node,
+      id: idx,
+    }),
+  );
+
   return (
     <Tabs className="w-full" defaultValue="overview">
       <TabsList className="grid w-full grid-cols-5">
@@ -911,7 +918,7 @@ export default function ProductDetail({
             <SpreadSheet
               productId={product?.product?.id}
               product={product?.product}
-              globalSizes={product?.globalSizes?.nodes}
+              globalSizes={localSizes}
               selectedImage={selectedSizeImage}
               setSelectedImage={setSelectedSizeImage}
               sessionUser={sessionUser}
