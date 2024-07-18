@@ -379,11 +379,14 @@ export async function fetchProductById(id: string): Promise<ProductData> {
   const decodedid = decodeBase64Id(id);
   console.log("decodedid", decodedid);
 
-  const query = `
-    query GetProduct($productId: ID!) {
+  const query = `query GetProduct($productId: ID!) {
   product(id: $productId, idType: DATABASE_ID) {
     id
     name
+    extras{
+      fit
+      style
+      materialcare}
     description
      imagePool{
       imagePool(first: 100){
@@ -528,6 +531,74 @@ export async function fetchProductById(id: string): Promise<ProductData> {
     return result.data;
   } catch (error) {
     console.error("Error fetching product:", error);
+    return null;
+  }
+}
+
+export async function updateProductExtras(
+  id: string,
+  fit: string,
+  style: string,
+  materialcare: string,
+  token: string,
+): Promise<ProductData> {
+  const query = `
+    mutation UpdateProductExtras($productId: ID!, $fit: String, $materialcare: String, $style: String) {
+  updateProductExtras(input: {
+    productId: $productId
+    fit: $fit
+    materialcare: $materialcare
+    style: $style
+  }) {
+    success
+    product {
+      id
+      name
+      extras {
+        fit
+        materialcare
+        style
+      }
+    }
+  }
+}
+  `;
+
+  const decodedId = decodeBase64Id(id);
+
+  const variables = {
+    productId: decodedId,
+    fit,
+    style,
+    materialcare,
+  };
+
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+      cache: "no-cache",
+      next: {
+        revalidate: 0,
+      },
+    });
+
+    const result: {
+      data: any;
+      errors?: Array<{ message: string }>;
+    } = await response.json();
+    console.log("Update Product", result);
+
+    return result.data.updateProductExtras.success;
+  } catch (error) {
+    console.error("Error updating product:", error);
     return null;
   }
 }
