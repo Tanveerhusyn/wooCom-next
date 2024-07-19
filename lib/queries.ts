@@ -311,30 +311,34 @@ export async function fetchProducts(
 
 function decodeBase64Id(encodedString) {
   try {
-    // Decode the URL-encoded string
+    // Remove any URL encoding if present
     const decodedUrlString = decodeURIComponent(encodedString);
-
-    // Validate the Base64 encoded string
-    if (!/^[A-Za-z0-9+/=]+$/.test(decodedUrlString)) {
-      throw new Error("Invalid Base64 string");
-    }
 
     // Decode the Base64 encoded string
     const decodedString = atob(decodedUrlString);
 
-    // The decoded string is in the format `product:97`, split it to get the ID
+    // Split the decoded string
     const parts = decodedString.split(":");
-    if (parts.length !== 2 || parts[0] !== "product") {
+
+    // Check if we have at least two parts
+    if (parts.length < 2) {
       throw new Error("Invalid format after decoding");
     }
 
-    return parts[1];
+    // The ID should be the last part
+    const id = parts[parts.length - 1];
+
+    // Ensure the ID is a number
+    if (isNaN(id)) {
+      throw new Error("Decoded ID is not a number");
+    }
+
+    return id;
   } catch (error) {
     console.error("Failed to decode Base64 string:", error);
     return null; // or handle the error as needed
   }
 }
-
 export async function updateProductTableData(productId, tableData, token) {
   const decodedId = decodeBase64Id(productId);
   const tableQuery = `mutation UpdateProductTableData($productId: ID!, $tableData: String!) {
@@ -387,6 +391,10 @@ export async function fetchProductById(id: string): Promise<ProductData> {
       fit
       style
       materialcare}
+    colorImages {
+        colorImages
+        fieldGroupName
+      }
     description
      imagePool{
       imagePool(first: 100){
@@ -603,6 +611,81 @@ export async function updateProductExtras(
   }
 }
 
+export async function updateProductColorImages(
+  id: string,
+  colorImages: string,
+  token: string,
+): Promise<boolean | null> {
+  const query = `
+    mutation UpdateProductColorImages($productId: ID!, $colorImages: String!) {
+  updateProductColorImages(
+    input: {productId: $productId, colorImages: $colorImages}
+  ) {
+    success
+    product {
+      id
+      name
+      colorImages {
+        colorImages
+        fieldGroupName
+      }
+    }
+  }
+}
+  `;
+
+  const decodedId = decodeBase64Id(id);
+
+  const variables = {
+    productId: decodedId,
+    colorImages: colorImages,
+  };
+
+  console.log(variables);
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+      cache: "no-cache",
+      next: {
+        revalidate: 0,
+      },
+    });
+
+    const result: {
+      data?: {
+        updateProductColorImages: {
+          success: boolean;
+          product: {
+            id: string;
+            name: string;
+            colorImages: object;
+          };
+        };
+      };
+      errors?: Array<{ message: string }>;
+    } = await response.json();
+
+    console.log("Update Product Color Images", result);
+
+    if (result.errors) {
+      console.error("GraphQL errors:", result.errors);
+      return null;
+    }
+
+    return result.data?.updateProductColorImages.success ?? null;
+  } catch (error) {
+    console.error("Error updating product color images:", error);
+    return null;
+  }
+}
 export async function updateProduct(
   id: string,
   title: string,
@@ -1228,20 +1311,20 @@ export async function updateGalleryImages(
   const decodeBase64ProductId = decodeBase64Id(productId);
 
   const mutation = `
-    mutation UpdateGalleryImages($productId: ID!, $galleryImages: [String!]!) {
-      updateProductGalleryImages(
-        productId: $productId,
-        galleryImages: $galleryImages
-      ) {
-        id
-        galleryImages {
-          nodes {
-            id
-            sourceUrl
-          }
+   mutation UpdateProductGalleryImages($productId: ID!, $galleryImages: [String]!) {
+  updateProductGalleryImages(input: { productId: $productId, galleryImages: $galleryImages }) {
+    product {
+      id
+      name
+      galleryImages {
+        nodes {
+          id
+          sourceUrl
         }
       }
     }
+  }
+}
   `;
 
   try {
@@ -1260,11 +1343,6 @@ export async function updateGalleryImages(
       }),
     });
 
-    if (!response.ok) {
-      const errorDetails = await response.text();
-      throw new Error(`Gallery images update failed: ${errorDetails}`);
-    }
-
     const result: {
       data: {
         updateProductGalleryImages: {
@@ -1275,11 +1353,7 @@ export async function updateGalleryImages(
       errors?: Array<{ message: string }>;
     } = await response.json();
 
-    if (result.errors) {
-      throw new Error(result.errors.map((error) => error.message).join(", "));
-    }
-
-    return !!result.data.updateProductGalleryImages;
+    return result.data ? true : false;
   } catch (error) {
     console.error("Error updating gallery images:", error);
     return false;
@@ -1323,8 +1397,17 @@ export async function updateProductImage(
   source_url: string,
   token: string,
 ): Promise<boolean> {
+  console.log("updateProductImage", productId, imageId, source_url);
   const decodeBase64ProductId = decodeBase64Id(productId);
+  const encodedId = imageId;
+  const decodedId = atob(encodedId);
+  console.log("ATOB", decodedId); // This will output: "post:7065"
   const decodeBase64ImageId = decodeBase64Id(imageId);
+  console.log(
+    "decodeBase64ImageId",
+    decodeBase64ProductId,
+    decodeBase64ImageId,
+  );
 
   const mutation = `
    mutation UpdateProductImage($productId: ID!, $imageId: ID!, $sourceUrl: String!) {
@@ -1360,21 +1443,12 @@ export async function updateProductImage(
       }),
     });
 
-    if (!response.ok) {
-      const errorDetails = await response.text();
-      throw new Error(`Product update failed: ${errorDetails}`);
-    }
-
     const result: {
       data: { updateProductImage: { product: Product } };
       errors?: Array<{ message: string }>;
     } = await response.json();
 
-    if (result.errors) {
-      throw new Error(result.errors.map((error) => error.message).join(", "));
-    }
-
-    return !!result.data.updateProductImage.product;
+    return result.data ? true : false;
   } catch (error) {
     console.error("Error updating product image:", error);
     return false;

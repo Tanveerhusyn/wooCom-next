@@ -1,4 +1,5 @@
 import { Icons } from "@/components/icons";
+import { any } from "zod";
 
 export interface NavItem {
   title: string;
@@ -139,6 +140,10 @@ interface SingleProduct {
   extras: {
     name: string;
     value: string;
+  }[];
+  colorImages: {
+    colorImages: any;
+    fieldGroupName: any;
   }[];
   imagePool: {
     imagePool: {

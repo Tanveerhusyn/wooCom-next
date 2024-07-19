@@ -84,6 +84,7 @@ import {
   updateProductImage,
   uploadImage,
   addImageToProductPoolByUrl,
+  updateProductColorImages,
 } from "@/lib/queries";
 import { useSession } from "next-auth/react";
 import { Plus, Trash, Trash2 } from "lucide-react";
@@ -157,8 +158,27 @@ export default function ProductDetail({
     }
   };
 
+  function parseNestedJson(input: string): any {
+    try {
+      // Step 1: Remove the outermost quotes
+      let parsed = input.slice(1, -1);
+
+      // Step 2: Unescape the remaining string
+      parsed = parsed.replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+
+      // Step 3: Parse the unescaped string as JSON
+      return JSON.parse(parsed);
+    } catch (error) {
+      console.error("Error parsing nested JSON:", error);
+      return null;
+    }
+  }
+
   React.useEffect(() => {
     if (product) {
+      const res = parseNestedJson(product?.product?.colorImages.colorImages);
+      setColorImages(res);
+
       if (product?.product?.galleryImages) {
         const gImages = transformImages(product?.product?.galleryImages.nodes);
         console.log("MEDIA", gImages);
@@ -184,15 +204,17 @@ export default function ProductDetail({
         setVariantImages(product?.product?.variations.nodes);
       }
 
-      if (product?.product.allPaColour) {
-        setAllColors(product?.product?.allPaColour.nodes);
-        setColorImages(
-          product?.product?.allPaColour.nodes.map((color) => ({
-            color: color.name,
-            images: [],
-          })),
-        );
-      }
+      // if (product?.product.allPaColour) {
+      //   setAllColors(product?.product?.attributes?.edges[0]?.node?.options);
+      //   setColorImages(
+      //     product?.product?.attributes?.edges[0]?.node?.options.map(
+      //       (color) => ({
+      //         color: color,
+      //         images: [],
+      //       }),
+      //     ),
+      //   );
+      // }
       console.log("SESSSSSION", product);
       const parsedValue = sessionUser ? sessionUser : {};
 
@@ -251,36 +273,6 @@ export default function ProductDetail({
     }
   };
 
-  const renderSelectContent = (option: string) => {
-    switch (option) {
-      case "Collection":
-        return product.globalCollections.nodes.map((item, idx) => (
-          <SelectItem key={idx} value={item.name}>
-            {item.name}
-          </SelectItem>
-        ));
-      case "Gender":
-        return product.globalGenders.nodes.map((item, idx) => (
-          <SelectItem key={idx} value={item.name}>
-            {item.name}
-          </SelectItem>
-        ));
-      case "Colour":
-        return product?.globalColors?.nodes?.map((item, idx) => (
-          <SelectItem key={idx} value={item.name}>
-            {item.name}
-          </SelectItem>
-        ));
-      case "Size":
-        return product?.globalSizes?.nodes?.map((item, idx) => (
-          <SelectItem key={idx} value={item.name}>
-            {item.name}
-          </SelectItem>
-        ));
-      default:
-        return null;
-    }
-  };
   React.useEffect(() => {
     const fetchMedia = async () => {
       const media = await getWordPressMedia();
@@ -289,11 +281,6 @@ export default function ProductDetail({
 
     fetchMedia();
   }, []);
-
-  const handleInputChange = (e) => {
-    const { id, value } = e.target;
-    setFormData((prevFormData) => ({ ...prevFormData, [id]: value }));
-  };
 
   const handleAddToSizes = (image: any) => {
     console.log("size", image);
@@ -310,24 +297,6 @@ export default function ProductDetail({
     ]);
   };
 
-  const handleAddToVariants = (variation, image) => {
-    setVariantImages((prevVariants) => {
-      // Map over the previous variants to update the image for the matching variation
-      return prevVariants.map((v) => {
-        if (v.id === variation.id) {
-          return {
-            ...v,
-            image: { ...v.image, sourceUrl: image.source_url },
-          };
-        }
-        return v;
-      });
-    });
-  };
-
-  const filteredOptionsTwo = options.filter(
-    (option) => option !== selectOptionOne,
-  );
   const handleAddToImagesColor = (color, image) => {
     // [
     //   {
@@ -344,16 +313,17 @@ export default function ProductDetail({
     //   },
     // ];
     setColorImages((prevColors) => {
-      return prevColors.map((c) => {
-        if (c.color.toLowerCase() === color.name.toLowerCase()) {
+      return prevColors.map((c, idx) => {
+        if (c.color.toLowerCase() === color.toLowerCase()) {
+          console.log("Img", image);
           return {
             ...c,
             images: [
               ...c.images,
               {
-                id: image.id,
-                src: image.source_url,
-                alt: `Image ${image.id}`,
+                id: idx,
+                src: image.sourceUrl,
+                alt: `Image ${idx}`,
               },
             ],
           };
@@ -362,8 +332,20 @@ export default function ProductDetail({
       });
     });
   };
+
+  function processColorImages(colorImages: any[]): string {
+    // First, stringify the array
+    let stringified = JSON.stringify(colorImages);
+    // Then, escape the double quotes within the string
+    stringified = stringified.replace(/"/g, '\\"');
+    // Finally, wrap the entire string in double quotes
+    return `"${stringified}"`;
+  }
   const handleSaveChanges = async () => {
-    console.log("FILES", files);
+    console.log("Color Images", colorImages);
+
+    const stringifiedImgs = processColorImages(colorImages);
+
     //@ts-ignore
 
     try {
@@ -374,6 +356,7 @@ export default function ProductDetail({
         first,
         data.user.accessToken,
       );
+      console.log("Payload Update Img", result);
 
       const galleryImagesSrc = galleryImages
         .filter((img) => img.src !== first)
@@ -384,12 +367,22 @@ export default function ProductDetail({
         galleryImagesSrc,
         data.user.accessToken,
       );
+
+      const result3 = await updateProductColorImages(
+        product?.product?.id,
+        stringifiedImgs,
+        data.user.accessToken,
+      );
       if (result) {
         toast.success("Image updated successfully");
       }
       if (result2) {
         toast.success("Gallery updated successfully");
       }
+      if (result3) {
+        toast.success("Color Images updated successfully");
+      }
+
       setLoading(false);
     } catch (err) {
       toast.error("Error updating image");
@@ -665,35 +658,38 @@ export default function ProductDetail({
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 w-[54rem] p-4">
-                    {product?.product?.allPaColour &&
-                      product?.product?.allPaColour.nodes.map((color, idx) => {
-                        const colorImage = colorImages.find(
-                          (c) =>
-                            c.color.toLowerCase() === color.name.toLowerCase(),
-                        );
-                        return (
-                          <div
-                            key={idx}
-                            className="w-full flex flex-col justify-left items-left"
-                          >
-                            {colorImage?.images.length <= 0 && (
-                              <h5>{color.name}</h5>
-                            )}
-                            {colorImage?.images.length > 0 ? (
-                              <Gallery
-                                first={null}
-                                setFirst={null}
-                                isColor={color.name}
-                                images={colorImage.images}
-                              />
-                            ) : (
-                              <span className="flex flex-col justify-start items-start w-full">
-                                <HiPhoto className="h-[200px] w-[200px]  my-4" />
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
+                    {product?.product?.attributes &&
+                      product?.product?.attributes?.edges[0]?.node?.options?.map(
+                        (color, idx) => {
+                          const colorImage = colorImages.find(
+                            (c) =>
+                              c.color.toLowerCase() === color.toLowerCase(),
+                          );
+                          console.log("COLOR", colorImage, color);
+                          return (
+                            <div
+                              key={idx}
+                              className="w-full flex flex-col justify-left items-left"
+                            >
+                              {colorImage?.images.length <= 0 && (
+                                <h5>{color}</h5>
+                              )}
+                              {colorImage?.images.length > 0 ? (
+                                <Gallery
+                                  first={null}
+                                  setFirst={null}
+                                  isColor={color}
+                                  images={colorImage.images}
+                                />
+                              ) : (
+                                <span className="flex flex-col justify-start items-start w-full">
+                                  <HiPhoto className="h-[200px] w-[200px]  my-4" />
+                                </span>
+                              )}
+                            </div>
+                          );
+                        },
+                      )}
                   </div>
                 </div>
 
@@ -791,7 +787,8 @@ export default function ProductDetail({
                                   </DropdownMenuItem>
                                 </DropdownMenuGroup>
                                 <DropdownMenuSeparator />
-                                {product?.product.allPaColour && (
+                                {product?.product?.attributes?.edges[0]?.node
+                                  ?.options && (
                                   <DropdownMenuGroup>
                                     <DropdownMenuSub>
                                       <DropdownMenuSubTrigger className="cursor-pointer">
@@ -800,7 +797,7 @@ export default function ProductDetail({
                                       </DropdownMenuSubTrigger>
                                       <DropdownMenuPortal className="">
                                         <DropdownMenuSubContent className="bg-gray-200 text-black">
-                                          {product?.product?.allPaColour.nodes.map(
+                                          {product?.product?.attributes?.edges[0]?.node?.options.map(
                                             (color) => (
                                               <>
                                                 <DropdownMenuItem
@@ -813,7 +810,7 @@ export default function ProductDetail({
                                                   className="cursor-pointer"
                                                 >
                                                   <Plus className="mr-2 h-4 w-4" />
-                                                  <span>{color.name}</span>
+                                                  <span>{color}</span>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                               </>
