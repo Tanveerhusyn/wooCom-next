@@ -9,13 +9,7 @@ import {
   CardFooter,
   Card,
 } from "../ui/card";
-import { Label } from "../ui/label";
-import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import action from "@/app/actions";
-import { Textarea } from "../ui/textarea";
-import { Product, ProductData } from "@/types";
-import FileUploader from "@/components/forms/file-uploader";
 import Gallery from "@/components/extension/gallery/Gallery";
 import SpreadSheet from "@/components/extension/spreadsheet";
 
@@ -38,7 +32,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuPortal,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -176,9 +169,11 @@ export default function ProductDetail({
 
   React.useEffect(() => {
     if (product) {
-      const res = parseNestedJson(product?.product?.colorImages.colorImages);
+ 
+     if(product?.product?.colorImages?.colorImages) 
+    {const res = parseNestedJson(product?.product?.colorImages.colorImages);
       setColorImages(res);
-
+    }
       if (product?.product?.galleryImages) {
         const gImages = transformImages(product?.product?.galleryImages.nodes);
         console.log("MEDIA", gImages);
@@ -661,7 +656,7 @@ export default function ProductDetail({
                     {product?.product?.attributes &&
                       product?.product?.attributes?.edges[0]?.node?.options?.map(
                         (color, idx) => {
-                          const colorImage = colorImages.find(
+                          const colorImage = colorImages?.find(
                             (c) =>
                               c.color.toLowerCase() === color.toLowerCase(),
                           );
