@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TabsTrigger, TabsList, TabsContent, Tabs } from "../ui/tabs";
 import {
   CardTitle,
@@ -12,7 +12,6 @@ import {
 import { Button } from "../ui/button";
 import Gallery from "@/components/extension/gallery/Gallery";
 import SpreadSheet from "@/components/extension/spreadsheet";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,23 +41,11 @@ import {
   CreditCard,
   ImageIcon,
   Loader2,
-  User,
+  TagIcon,
   UserPlus,
-  Users,
 } from "lucide-react";
-import {
-  Carousel,
-  CarouselMainContainer,
-  CarouselNext,
-  CarouselPrevious,
-  SliderMainItem,
-  CarouselThumbsContainer,
-  SliderThumbItem,
-} from "@/components/extension/carousel";
-import Sizes from "../extension/sizes";
-import TextForm from "../extension/textForm";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "../ui/scroll-area";
-
 import {
   SelectValue,
   SelectTrigger,
@@ -68,7 +55,22 @@ import {
   SelectContent,
   Select,
 } from "@/components/ui/select";
-
+import {
+  Carousel,
+  CarouselMainContainer,
+  CarouselNext,
+  CarouselPrevious,
+  SliderMainItem,
+  CarouselThumbsContainer,
+  SliderThumbItem,
+} from "@/components/extension/carousel";
+import { useSession } from "next-auth/react";
+import { Plus, Trash2 } from "lucide-react";
+import { HiPhoto } from "react-icons/hi2";
+import { HamburgerMenuIcon, SizeIcon } from "@radix-ui/react-icons";
+import { Badge } from "../ui/badge";
+import toast from "react-hot-toast";
+import ImagePickerModal from "@/components/extension/gallery/ImagePickerModal";
 import {
   getWordPressMedia,
   triggerImagePoolUpdate,
@@ -78,61 +80,128 @@ import {
   uploadImage,
   addImageToProductPoolByUrl,
   updateProductColorImages,
+  updateImageMetadata,
 } from "@/lib/queries";
-import { useSession } from "next-auth/react";
-import { Plus, Trash, Trash2 } from "lucide-react";
-import { HiPhoto } from "react-icons/hi2";
-import { HamburgerMenuIcon, SizeIcon } from "@radix-ui/react-icons";
-import { Badge } from "../ui/badge";
-import toast from "react-hot-toast";
-import ImagePickerModal from "@/components/extension/gallery/ImagePickerModal";
 
-export default function ProductDetail({
-  product,
-  sessionUser,
-}: {
-  product: any;
-  sessionUser: any;
-}) {
-  const [images, setImages] = useState([]);
-  const [galleryImages, setGalleryImages] = useState([]);
-  const [selectedImage, setSelectedImage] = useState(
-    product?.product?.image?.sourceUrl || null,
-  );
-  const [variantImages, setVariantImages] = useState([]);
-  const [allColors, setAllColors] = useState([]);
-  const [selectedSizeImage, setSelectedSizeImage] = useState(null);
-  const [selectOptionOne, setSelectOptionOne] = useState("Colour");
-  const [selectOptionTwo, setSelectOptionTwo] = useState("Size");
-  const [first, setFirst] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
+import Sizes from "../extension/sizes";
+import TextForm from "../extension/textForm";
 
-  const [attLoading, setAttLoading] = useState<boolean>(false);
-  const [files, setFiles] = useState<File[] | null>(null);
-  const [colorImages, setColorImages] = useState([
-    {
+export default function ProductDetail({ product, sessionUser }) {
+  const [state, setState] = useState({
+    images: [],
+    galleryImages: [],
+    selectedImage: product?.product?.image?.sourceUrl || null,
+    variantImages: [],
+    allColors: [],
+    selectedSizeImage: null,
+    selectOptionOne: "Colour",
+    selectOptionTwo: "Size",
+    first: "",
+    loading: false,
+    attLoading: false,
+    files: null,
+    colorImages: [],
+    formData: {
+      name: "",
+      category: "",
+      price: "",
+      title: "",
+      body: "",
       color: "",
-      images: [],
+      size: "",
     },
-  ]);
-  // "Collection", "Gender",
-  const options = ["Colour", "Size"];
-
-  const filteredOptionsOne = options.filter(
-    (option) => option !== selectOptionTwo,
-  );
+    existingColours: [],
+    newColours: [],
+    existingSizes: [],
+    newSizes: [],
+    imageMetadata: {},
+    mappings: {},
+    replacements: {},
+  });
 
   const { data } = useSession();
 
-  const [formData, setFormData] = useState({
-    name: "",
-    category: "",
-    price: "",
-    title: "",
-    body: "",
-    color: "",
-    size: "",
-  });
+  useEffect(() => {
+    if (product) {
+      if (product?.product?.colorImages?.colorImages) {
+        const res = parseNestedJson(product?.product?.colorImages.colorImages);
+        setState((prev) => ({ ...prev, colorImages: res }));
+      }
+      if (product?.product?.galleryImages) {
+        const gImages = transformImages(product?.product?.galleryImages.nodes);
+        setState((prev) => ({
+          ...prev,
+          galleryImages: [
+            {
+              id: product?.product?.image?.id,
+              src: product?.product?.image?.sourceUrl,
+              alt: `Image ${product?.product?.image?.id}`,
+            },
+            ...gImages,
+          ],
+        }));
+      } else {
+        setState((prev) => ({
+          ...prev,
+          galleryImages: [
+            {
+              id: product?.product?.image?.id,
+              src: product?.product?.image?.sourceUrl,
+              alt: `Image ${product?.product?.image?.id}`,
+            },
+          ],
+        }));
+      }
+      if (product?.product.variations) {
+        setState((prev) => ({
+          ...prev,
+          variantImages: product?.product?.variations.nodes,
+        }));
+      }
+      callTriggerImagePoolUpdate(sessionUser.user.accessToken);
+    }
+  }, [product]);
+
+  useEffect(() => {
+    if (state.files?.length > 0) {
+      const file = state.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const url = reader.result;
+        setState((prev) => ({
+          ...prev,
+          images: [{ source_url: url }, ...prev.images],
+        }));
+      };
+      reader?.readAsDataURL(file);
+    }
+  }, [state.files]);
+
+  useEffect(() => {
+    const fetchMedia = async () => {
+      const media = await getWordPressMedia();
+      setState((prev) => ({ ...prev, images: media }));
+    };
+    fetchMedia();
+  }, []);
+
+  const parseNestedJson = (input) => {
+    try {
+      let parsed = input.slice(1, -1);
+      parsed = parsed.replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+      return JSON.parse(parsed);
+    } catch (error) {
+      console.error("Error parsing nested JSON:", error);
+      return null;
+    }
+  };
+
+  const transformImages = (images) =>
+    images.map((image, idx) => ({
+      id: image.id || idx,
+      src: image.sourceUrl,
+      alt: `Image ${image.id}`,
+    }));
 
   const callTriggerImagePoolUpdate = async (token) => {
     try {
@@ -142,8 +211,6 @@ export default function ProductDetail({
       );
       if (response) {
         console.log("Image pool updated successfully");
-        // window.location.reload();
-        // action("refreshProduct");
       }
     } catch (err) {
       toast.error("Error updating image pool");
@@ -151,315 +218,202 @@ export default function ProductDetail({
     }
   };
 
-  function parseNestedJson(input: string): any {
-    try {
-      // Step 1: Remove the outermost quotes
-      let parsed = input.slice(1, -1);
-
-      // Step 2: Unescape the remaining string
-      parsed = parsed.replace(/\\"/g, '"').replace(/\\\\/g, "\\");
-
-      // Step 3: Parse the unescaped string as JSON
-      return JSON.parse(parsed);
-    } catch (error) {
-      console.error("Error parsing nested JSON:", error);
-      return null;
-    }
-  }
-
-  React.useEffect(() => {
-    if (product) {
- 
-     if(product?.product?.colorImages?.colorImages) 
-    {const res = parseNestedJson(product?.product?.colorImages.colorImages);
-      setColorImages(res);
-    }
-      if (product?.product?.galleryImages) {
-        const gImages = transformImages(product?.product?.galleryImages.nodes);
-        console.log("MEDIA", gImages);
-        setGalleryImages([
-          {
-            id: product?.product?.image?.id,
-            src: product?.product?.image?.sourceUrl,
-            alt: `Image ${product?.product?.image?.id}`,
-          },
-          ...gImages,
-        ]);
-      } else {
-        setGalleryImages([
-          {
-            id: product?.product?.image?.id,
-            src: product?.product?.image?.sourceUrl,
-            alt: `Image ${product?.product?.image?.id}`,
-          },
-        ]);
-      }
-
-      if (product?.product.variations) {
-        setVariantImages(product?.product?.variations.nodes);
-      }
-
-      // if (product?.product.allPaColour) {
-      //   setAllColors(product?.product?.attributes?.edges[0]?.node?.options);
-      //   setColorImages(
-      //     product?.product?.attributes?.edges[0]?.node?.options.map(
-      //       (color) => ({
-      //         color: color,
-      //         images: [],
-      //       }),
-      //     ),
-      //   );
-      // }
-      console.log("SESSSSSION", product);
-      const parsedValue = sessionUser ? sessionUser : {};
-
-      callTriggerImagePoolUpdate(parsedValue.user.accessToken);
-    }
-  }, [product]);
-
-  React.useEffect(() => {
-    if (files?.length > 0) {
-      console.log("FILES", files);
-      //add the image file to the images useState by first converting the File object to a URL
-      const file = files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const url = reader.result;
-        setImages((prevImages) => [{ source_url: url }, ...prevImages]);
-      };
-      reader?.readAsDataURL(file);
-    }
-  }, [files]);
-
-  const transformImages = (images) => {
-    return images.map((image, idx) => ({
-      id: image.id || idx,
-      src: image.sourceUrl,
-      alt: `Image ${image.id}`, // Provide a meaningful alt text, if available
-      // Add any other properties you need
-    }));
-  };
-
-  const getExistingValues = (option: string) => {
-    switch (option) {
-      // case "Collection":
-      //   return (
-      //     product?.product?.allPaCollection?.nodes.map((item) => item.name) ||
-      //     []
-      //   );
-      // case "Gender":
-      //   return (
-      //     product?.product?.allPaGender?.nodes.map((item) => item.name) || []
-      //   );
-      case "Colour":
-        return (
-          product?.product?.attributes?.edges[0]?.node?.options?.map(
-            (item) => item,
-          ) || []
-        );
-      case "Size":
-        return (
-          product?.product?.attributes?.edges[1]?.node?.options?.map(
-            (item) => item,
-          ) || []
-        );
-      default:
-        return [];
-    }
-  };
-
-  React.useEffect(() => {
-    const fetchMedia = async () => {
-      const media = await getWordPressMedia();
-      setImages(media);
-    };
-
-    fetchMedia();
-  }, []);
-
-  const handleAddToSizes = (image: any) => {
-    console.log("size", image);
-    setSelectedSizeImage({
-      id: 1,
-      source_url: image.sourceUrl,
-    });
-  };
-
-  const handleAddToGallery = (img: any) => {
-    setGalleryImages((prevImages) => [
-      { id: img.id, src: img.source_url },
-      ...prevImages,
-    ]);
-  };
-
-  const handleAddToImagesColor = (color, image) => {
-    // [
-    //   {
-    //     color: "Blue",
-    //     images: [],
-    //   },
-    //   {
-    //     color: "Green",
-    //     images: [],
-    //   },
-    //   {
-    //     color: "Yellow",
-    //     images: [],
-    //   },
-    // ];
-    setColorImages((prevColors) => {
-      return prevColors.map((c, idx) => {
-        if (c.color.toLowerCase() === color.toLowerCase()) {
-          console.log("Img", image);
-          return {
-            ...c,
-            images: [
-              ...c.images,
-              {
-                id: idx,
-                src: image.sourceUrl,
-                alt: `Image ${idx}`,
-              },
-            ],
-          };
-        }
-        return c;
-      });
-    });
-  };
-
-  function processColorImages(colorImages: any[]): string {
-    // First, stringify the array
-    let stringified = JSON.stringify(colorImages);
-    // Then, escape the double quotes within the string
-    stringified = stringified.replace(/"/g, '\\"');
-    // Finally, wrap the entire string in double quotes
-    return `"${stringified}"`;
-  }
   const handleSaveChanges = async () => {
-    console.log("Color Images", colorImages);
-
-    const stringifiedImgs = processColorImages(colorImages);
-
-    //@ts-ignore
-
     try {
-      setLoading(true);
+      setState((prev) => ({ ...prev, loading: true }));
+      console.log(state);
       const result = await updateProductImage(
         product?.product?.id,
         product?.product?.image?.id,
-        first,
+        state.first,
         data.user.accessToken,
       );
-      console.log("Payload Update Img", result);
-
-      const galleryImagesSrc = galleryImages
-        .filter((img) => img.src !== first)
+      const galleryImagesSrc = state.galleryImages
+        .filter((img) => img.src !== state.first)
         .map((img) => img.src);
-
       const result2 = await updateGalleryImages(
         product?.product?.id,
         galleryImagesSrc,
         data.user.accessToken,
       );
-
+      const stringifiedImgs = processColorImages(state.colorImages);
       const result3 = await updateProductColorImages(
         product?.product?.id,
         stringifiedImgs,
         data.user.accessToken,
       );
-      if (result) {
-        toast.success("Image updated successfully");
-      }
-      if (result2) {
-        toast.success("Gallery updated successfully");
-      }
-      if (result3) {
-        toast.success("Color Images updated successfully");
-      }
 
-      setLoading(false);
+      if (result) toast.success("Image updated successfully");
+      if (result2) toast.success("Gallery updated successfully");
+      if (result3) toast.success("Color Images updated successfully");
+      setState((prev) => ({ ...prev, loading: false }));
     } catch (err) {
       toast.error("Error updating image");
-      setLoading(false);
+      setState((prev) => ({ ...prev, loading: false }));
       console.log("Error updating image", err);
     }
   };
 
-  const [existingColours, setExistingColours] = useState(
-    getExistingValues("Colour"),
-  );
-  const [newColours, setNewColours] = useState(
-    Array(existingColours.length).fill(""),
-  );
-  const [existingSizes, setExistingSizes] = useState(getExistingValues("Size"));
-  const [newSizes, setNewSizes] = useState(
-    Array(existingSizes.length).fill(""),
-  );
+  const processColorImages = (colorImages) => {
+    let stringified = JSON.stringify(colorImages);
+    stringified = stringified.replace(/"/g, '\\"');
+    return `"${stringified}"`;
+  };
 
-  const [colours, setColours] = useState(getExistingValues("Colour"));
-  const [sizes, setSizes] = useState(getExistingValues("Size"));
+  const handleImageTypeChange = (image, type) => {
+    setState((prev) => ({
+      ...prev,
+      imageMetadata: {
+        ...prev.imageMetadata,
+        [image.id]: {
+          ...prev.imageMetadata[image.id],
+          imageType: type,
+        },
+      },
+    }));
+  };
 
-  const [mappings, setMappings] = useState({});
-  const [replacements, setReplacements] = useState({});
+  // Handle Gender Change
+  const handleGenderChange = (image, gender) => {
+    console.log("IMGGG", image);
+    setState((prev) => ({
+      ...prev,
+      imageMetadata: {
+        ...prev.imageMetadata,
+        [image.id]: {
+          ...prev.imageMetadata[image.id],
+          gender,
+        },
+      },
+    }));
+  };
+
+  // Handle Skin Color Change
+  const handleSkinColorChange = (image, skinColor) => {
+    setState((prev) => ({
+      ...prev,
+      imageMetadata: {
+        ...prev.imageMetadata,
+        [image.id]: {
+          ...prev.imageMetadata[image.id],
+          skinColor,
+        },
+      },
+    }));
+  };
+  const handleAddToImagesColor = (color, image) => {
+    setState((prev) => {
+      const existingColorImages = prev.colorImages || [];
+      const colorExists = existingColorImages.some(
+        (c) => c.color.toLowerCase() === color.toLowerCase(),
+      );
+
+      if (colorExists) {
+        return {
+          ...prev,
+          colorImages: existingColorImages.map((c) => {
+            if (c.color.toLowerCase() === color.toLowerCase()) {
+              return {
+                ...c,
+                images: [
+                  ...c.images,
+                  {
+                    id: c.images.length,
+                    src: image.sourceUrl,
+                    alt: `Image ${c.images.length}`,
+                  },
+                ],
+              };
+            }
+            return c;
+          }),
+        };
+      } else {
+        return {
+          ...prev,
+          colorImages: [
+            ...existingColorImages,
+            {
+              color: color,
+              images: [
+                {
+                  id: 0,
+                  src: image.sourceUrl,
+                  alt: `Image 0`,
+                },
+              ],
+            },
+          ],
+        };
+      }
+    });
+  };
 
   const handleCustomImageUpload = async (files) => {
     const result = await uploadImage(files[0], data.user.accessToken);
-    console.log("Image Upload", result);
     if (result) {
-      console.log("Image uploaded successfully");
-
       await addImageToProductPoolByUrl(
         product?.product?.id,
         data.user.accessToken,
         result.source_url,
       );
     }
-    // Note: The setTimeout is removed as it's not necessary for actual uploads
   };
+
   const handleStoreAttributes = async () => {
     try {
-      console.log("USER", data.user);
-      setAttLoading(true);
+      setState((prev) => ({ ...prev, attLoading: true }));
       if (!data.user) {
         toast.error("You need to be logged in to save changes.");
         return;
       }
-
-      console.log(replacements);
-
-      // Use the selected values from state
       const selectedColours = Object.values(
-        replacements.colour || replacements.color || replacements.pa_colour,
+        state.replacements.colour ||
+          state.replacements.color ||
+          state.replacements.pa_colour,
       );
       const selectedSizes = Object.values(
-        replacements.size || replacements.pa_size,
+        state.replacements.size || state.replacements.pa_size,
       );
-
-      console.log("Selected Colours:", selectedColours);
-      console.log("Selected Sizes:", selectedSizes);
-      const parsedValue = sessionUser ? sessionUser : {};
-
       const updateProductAttributesResponse = await updateProductAttributes(
         product?.product?.id,
         selectedColours,
         selectedSizes,
-        parsedValue.user.accessToken,
+        data.user.accessToken,
       );
-
       if (updateProductAttributesResponse) {
         toast.success("Attributes updated successfully.");
       } else {
         toast.error("Failed to update attributes.");
       }
-
-      setAttLoading(false);
+      setState((prev) => ({ ...prev, attLoading: false }));
     } catch (error) {
       console.error("Error updating attributes:", error);
-      setAttLoading(false);
+      setState((prev) => ({ ...prev, attLoading: false }));
       toast.error("An error occurred. Please try again later.");
     }
   };
+
+  const handleMappingChange = (attribute, value) => {
+    setState((prev) => ({
+      ...prev,
+      mappings: { ...prev.mappings, [attribute]: value },
+    }));
+  };
+
+  const handleReplacementChange = (attribute, originalValue, newValue) => {
+    setState((prev) => ({
+      ...prev,
+      replacements: {
+        ...prev.replacements,
+        [attribute]: {
+          ...prev.replacements[attribute],
+          [originalValue]: newValue,
+        },
+      },
+    }));
+  };
+
   const productAttributes = product?.product?.attributes?.edges.reduce(
     (acc, { node }) => {
       acc[node.name.toLowerCase()] = node.options;
@@ -473,23 +427,33 @@ export default function ProductDetail({
     size: product?.globalSizes?.nodes.map((node) => node.name),
   };
 
-  const handleMappingChange = (attribute, value) => {
-    setMappings((prev) => ({ ...prev, [attribute]: value }));
-  };
-
-  const handleReplacementChange = (attribute, originalValue, newValue) => {
-    setReplacements((prev) => ({
-      ...prev,
-      [attribute]: { ...prev[attribute], [originalValue]: newValue },
-    }));
-  };
-
   const localSizes = product?.product?.attributes?.edges[1]?.node?.options?.map(
     (node, idx) => ({
       name: node,
       id: idx,
     }),
   );
+
+  const handleSaveMetadata = async (imageId) => {
+    const metadata = state.imageMetadata[imageId] || {
+      imageType: "product",
+      gender: "",
+      skinColor: "",
+    };
+    const token = data.user.accessToken;
+    console.log("METADATA", metadata);
+    if (metadata) {
+      const success = await updateImageMetadata(imageId, metadata, token);
+
+      if (success) {
+        toast.success("Image metadata updated successfully");
+      } else {
+        toast.error("Failed to update image metadata");
+      }
+    } else {
+      toast.error("No metadata found for this image");
+    }
+  };
 
   return (
     <Tabs className="w-full" defaultValue="overview">
@@ -513,9 +477,7 @@ export default function ProductDetail({
               <CarouselNext className="top-1/3 bg-white text-black -translate-y-1/3" />
               <CarouselPrevious className="top-1/3 bg-white text-black -translate-y-1/3" />
               <CarouselMainContainer className="h-60">
-                {Array.from({
-                  length: 5,
-                }).map((_, index) => (
+                {Array.from({ length: 5 }).map((_, index) => (
                   <SliderMainItem key={index} className="bg-transparent">
                     <img
                       src={product?.product?.image?.sourceUrl}
@@ -539,14 +501,14 @@ export default function ProductDetail({
                           alt={product?.product.name}
                           className="w-[100px] h-[80px] object-cover rounded-lg"
                         />
-                      </div>{" "}
+                      </div>
                     </SliderThumbItem>
                   ))}
                 </CarouselThumbsContainer>
               )}
             </Carousel>
           </div>
-          <CardContent className="grid grid-cols-2 gap-2  h-full w-full space-y-2">
+          <CardContent className="grid grid-cols-2 gap-2 h-full w-full space-y-2">
             <dl className="max-w-md text-gray-900 divide-y divide-gray-200 dark:text-white dark:divide-gray-700">
               <div className="flex flex-col pb-3">
                 <dt className="mb-1 text-gray-500 md:text-lg dark:text-gray-400">
@@ -599,9 +561,6 @@ export default function ProductDetail({
               </div>
             </dl>
           </CardContent>
-          {/* <CardFooter>
-            <Button onClick={handleSaveChanges}>Save changes</Button>
-          </CardFooter> */}
         </Card>
       </TabsContent>
       <TabsContent value="media" className="h-[800px] overflow-y-auto">
@@ -609,113 +568,79 @@ export default function ProductDetail({
           <CardHeader className="flex flex-row justify-between">
             <div></div>
             <Button onClick={handleSaveChanges}>
-              {loading ? (
+              {state.loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Save Changes"
               )}
             </Button>
           </CardHeader>
-          <CardContent className="space-y-2 flex flex-col  overflow-y-auto">
+          <CardContent className="space-y-2 flex flex-col overflow-y-auto">
             <div className="m-2 p-2 flex">
               <div className="flex flex-col gap-2">
                 <Gallery
                   isColor={false}
-                  images={galleryImages}
-                  first={first}
-                  setFirst={setFirst}
+                  images={state.galleryImages}
+                  first={state.first}
+                  setFirst={(value) =>
+                    setState((prev) => ({ ...prev, first: value }))
+                  }
                 />
-                <div className="relative mx-auto  max-w-[54rem] rounded-xl border bg-black from-gray-100 from-0% to-gray-200 to-100% shadow-lg">
-                  {/* title portion */}
-
-                  <div className="sticky top-0 z-[1] bg-white/10 flex min-h-[3rem] flex-wrap items-center gap-1 bg-black overflow-y-hidden border-b  px-4 py-2 [&_*]:leading-6">
+                <div className="relative mx-auto max-w-[54rem] rounded-xl border bg-black from-gray-100 from-0% to-gray-200 to-100% shadow-lg">
+                  <div className="sticky top-0 z-[1] bg-white/10 flex min-h-[3rem] flex-wrap items-center gap-1 bg-black overflow-y-hidden border-b px-4 py-2 [&_*]:leading-6">
                     <div>
                       <h5>Size Section</h5>
                     </div>
                   </div>
                   <div className="w-[54rem]">
-                    {(!selectedSizeImage && (
+                    {!state.selectedSizeImage ? (
                       <HiPhoto className="w-[54rem] h-[400px] mx-auto my-4" />
-                    )) || (
+                    ) : (
                       <img
-                        src={selectedSizeImage.source_url}
+                        src={state.selectedSizeImage.source_url}
                         alt="Selected Image"
                         className="w-auto object-fit h-[400px] mx-auto my-4"
                       />
                     )}
                   </div>
                 </div>
-
-                <div className="relative  mx-auto max-w-[54rem] rounded-xl border bg-black from-gray-100 from-0% to-gray-200 to-100% shadow-lg">
-                  <div className="sticky bg-white/10 top-0 z-[1] flex min-h-[3rem] flex-wrap items-center gap-1 bg-black overflow-y-hidden border-b  px-4 py-2 [&_*]:leading-6">
+                <div className="relative mx-auto max-w-[54rem] rounded-xl border bg-black from-gray-100 from-0% to-gray-200 to-100% shadow-lg">
+                  <div className="sticky bg-white/10 top-0 z-[1] flex min-h-[3rem] flex-wrap items-center gap-1 bg-black overflow-y-hidden border-b px-4 py-2 [&_*]:leading-6">
                     <div>
                       <h5>Colors</h5>
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 w-[54rem] p-4">
-                    {product?.product?.attributes &&
-                      product?.product?.attributes?.edges[0]?.node?.options?.map(
-                        (color, idx) => {
-                          const colorImage = colorImages?.find(
-                            (c) =>
-                              c.color.toLowerCase() === color.toLowerCase(),
-                          );
-                          console.log("COLOR", colorImage, color);
-                          return (
-                            <div
-                              key={idx}
-                              className="w-full flex flex-col justify-left items-left"
-                            >
-                              {colorImage?.images.length <= 0 && (
-                                <h5>{color}</h5>
-                              )}
-                              {colorImage?.images.length > 0 ? (
-                                <Gallery
-                                  first={null}
-                                  setFirst={null}
-                                  isColor={color}
-                                  images={colorImage.images}
-                                />
-                              ) : (
-                                <span className="flex flex-col justify-start items-start w-full">
-                                  <HiPhoto className="h-[200px] w-[200px]  my-4" />
-                                </span>
-                              )}
-                            </div>
-                          );
-                        },
-                      )}
-                  </div>
-                </div>
-
-                {/* <div className="relative mx-auto max-w-[54rem] rounded-xl border bg-black from-gray-100 from-0% to-gray-200 to-100% shadow-lg">
-                  <div className="sticky bg-white/10 top-0 z-[1] flex min-h-[3rem] flex-wrap items-center gap-1 bg-black overflow-y-hidden border-b  px-4 py-2 [&_*]:leading-6">
-                    <div>
-                      <h5>Variants</h5>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 w-[54rem] p-4">
-                    {product?.product?.variations &&
-                      variantImages.map((variation, idx) => {
-                        console.log("VARIATION", variation);
+                    {product?.product?.attributes?.edges[0]?.node?.options?.map(
+                      (color, idx) => {
+                        const colorImage = state.colorImages?.find(
+                          (c) => c.color.toLowerCase() === color.toLowerCase(),
+                        );
                         return (
-                          <div key={idx} className="">
-                            <h5>{variation.name}</h5>
-                            <img
-                              src={variation.image.sourceUrl}
-                              alt="Selected Image"
-                              className="w-auto object-fit h-[200px] gap-2 mx-3 my-4"
-                            />
+                          <div
+                            key={idx}
+                            className="w-full flex flex-col justify-left items-left"
+                          >
+                            {colorImage?.images.length <= 0 && <h5>{color}</h5>}
+                            {colorImage?.images.length > 0 ? (
+                              <Gallery
+                                isColor={color}
+                                images={colorImage.images}
+                              />
+                            ) : (
+                              <span className="flex flex-col justify-start items-start w-full">
+                                <HiPhoto className="h-[200px] w-[200px] my-4" />
+                              </span>
+                            )}
                           </div>
                         );
-                      })}
+                      },
+                    )}
                   </div>
-                </div> */}
+                </div>
               </div>
-
               <div className="flex flex-col">
                 <ImagePickerModal onUpload={handleCustomImageUpload} />
-                {/* <FileUploader files={files} setFiles={setFiles} /> */}
                 <CardDescription className="m-2 p-2">
                   Choose an Image from the Pool
                 </CardDescription>
@@ -725,28 +650,17 @@ export default function ProductDetail({
                       (image, index) => (
                         <div key={index} className="relative group">
                           <img
-                            onClick={() => setSelectedImage(image.sourceUrl)}
+                            onClick={() =>
+                              setState((prev) => ({
+                                ...prev,
+                                selectedImage: image.sourceUrl,
+                              }))
+                            }
                             className="h-auto min-h-[200px] max-h-[200px] w-[200px] object-cover max-w-full rounded-lg transition-opacity duration-200 ease-in-out cursor-pointer group-hover:opacity-50"
                             src={image.sourceUrl}
                             alt="Gallery image"
                           />
                           <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out">
-                            {/* <Button
-                            variant="outline"
-                            className="m-2 border border-white hover:bg-white hover:text-black min-w-[110px]"
-                            onClick={() => handleAddToGallery(image)}
-                          >
-                            <Plus className="w-6 h-6" />
-                            Gallery
-                          </Button>
-                          <Button
-                            variant="outline"
-                            className="m-2 border border-white hover:bg-white hover:text-black min-w-[110px]"
-                            onClick={() => handleAddToSizes(image)}
-                          >
-                            <Plus className="w-6 h-6" />
-                            Sizes
-                          </Button> */}
                             <DropdownMenu>
                               <DropdownMenuTrigger
                                 className="bg-red-500"
@@ -761,7 +675,7 @@ export default function ProductDetail({
                               </DropdownMenuTrigger>
                               <DropdownMenuContent
                                 side="top"
-                                className="w-56 shadow-3xl bg-gray-200 text-black "
+                                className="w-56 shadow-3xl bg-gray-200 text-black"
                               >
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
@@ -782,6 +696,123 @@ export default function ProductDetail({
                                   </DropdownMenuItem>
                                 </DropdownMenuGroup>
                                 <DropdownMenuSeparator />
+                                <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger>
+                                    <TagIcon className="mr-2 h-4 w-4" />
+                                    <span>Image Metadata</span>
+                                  </DropdownMenuSubTrigger>
+                                  <DropdownMenuSubContent className="w-full p-4 bg-gray-200 text-black">
+                                    <div className="space-y-4">
+                                      <div>
+                                        <Label className="mb-2 block">
+                                          Image Type
+                                        </Label>
+                                        <Select
+                                          value={
+                                            state.imageMetadata[image.id]
+                                              ?.imageType || "product"
+                                          }
+                                          onValueChange={(value) =>
+                                            handleImageTypeChange(image, value)
+                                          }
+                                        >
+                                          <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Select Type" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="product">
+                                              Product
+                                            </SelectItem>
+                                            <SelectItem value="person">
+                                              Person
+                                            </SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      {state.imageMetadata[image.id]
+                                        ?.imageType === "person" && (
+                                        <div>
+                                          <div>
+                                            <Label
+                                              htmlFor="gender"
+                                              className="mb-1 block"
+                                            >
+                                              Gender
+                                            </Label>
+                                            <Select
+                                              value={
+                                                state.imageMetadata[image.id]
+                                                  ?.gender || ""
+                                              }
+                                              onValueChange={(value) =>
+                                                handleGenderChange(image, value)
+                                              }
+                                            >
+                                              <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select Gender" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="male">
+                                                  Male
+                                                </SelectItem>
+                                                <SelectItem value="female">
+                                                  Female
+                                                </SelectItem>
+                                                <SelectItem value="other">
+                                                  Other
+                                                </SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                          <div>
+                                            <Label
+                                              htmlFor="skinColor"
+                                              className="mb-1 block"
+                                            >
+                                              Skin Color
+                                            </Label>
+                                            <Select
+                                              value={
+                                                state.imageMetadata[image.id]
+                                                  ?.skinColor || ""
+                                              }
+                                              onValueChange={(value) =>
+                                                handleSkinColorChange(
+                                                  image,
+                                                  value,
+                                                )
+                                              }
+                                            >
+                                              <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select Skin Color" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="light">
+                                                  Light
+                                                </SelectItem>
+                                                <SelectItem value="medium">
+                                                  Medium
+                                                </SelectItem>
+                                                <SelectItem value="dark">
+                                                  Dark
+                                                </SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
+                                      )}
+                                      <Button
+                                        className="bg-black text-white hover:bg-gray-800"
+                                        onClick={() =>
+                                          handleSaveMetadata(image.id)
+                                        }
+                                      >
+                                        Save Metadata
+                                      </Button>
+                                    </div>
+                                  </DropdownMenuSubContent>
+                                </DropdownMenuSub>
+                                <DropdownMenuSeparator />
                                 {product?.product?.attributes?.edges[0]?.node
                                   ?.options && (
                                   <DropdownMenuGroup>
@@ -794,7 +825,7 @@ export default function ProductDetail({
                                         <DropdownMenuSubContent className="bg-gray-200 text-black">
                                           {product?.product?.attributes?.edges[0]?.node?.options.map(
                                             (color) => (
-                                              <>
+                                              <React.Fragment key={color}>
                                                 <DropdownMenuItem
                                                   onClick={() =>
                                                     handleAddToImagesColor(
@@ -808,7 +839,7 @@ export default function ProductDetail({
                                                   <span>{color}</span>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
-                                              </>
+                                              </React.Fragment>
                                             ),
                                           )}
                                         </DropdownMenuSubContent>
@@ -816,40 +847,6 @@ export default function ProductDetail({
                                     </DropdownMenuSub>
                                   </DropdownMenuGroup>
                                 )}
-                                {/* <DropdownMenuSeparator />
-                              {product?.product.variations && (
-                                <DropdownMenuGroup>
-                                  <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger className="cursor-pointer">
-                                      <UserPlus className="mr-2 h-4 w-4 " />
-                                      <span className="">Add to Variants</span>
-                                    </DropdownMenuSubTrigger>
-                                    <DropdownMenuPortal className="">
-                                      <DropdownMenuSubContent className="bg-gray-200 text-black">
-                                        {product?.product?.variations.nodes.map(
-                                          (variation) => (
-                                            <>
-                                              <DropdownMenuItem
-                                                onClick={() =>
-                                                  handleAddToVariants(
-                                                    variation,
-                                                    image,
-                                                  )
-                                                }
-                                                className="cursor-pointer"
-                                              >
-                                                <Plus className="mr-2 h-4 w-4" />
-                                                <span>{variation.name}</span>
-                                              </DropdownMenuItem>
-                                              <DropdownMenuSeparator />
-                                            </>
-                                          ),
-                                        )}
-                                      </DropdownMenuSubContent>
-                                    </DropdownMenuPortal>
-                                  </DropdownMenuSub>
-                                </DropdownMenuGroup>
-                              )} */}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -891,28 +888,31 @@ export default function ProductDetail({
       <TabsContent value="size" className="py-10 h-[800px] overflow-y-auto">
         <div className="flex justify-between items-start h-full">
           <div className="max-w-[400px]">
-            {" "}
-            {(selectedSizeImage && (
+            {state.selectedSizeImage ? (
               <Gallery
                 first={null}
                 setFirst={null}
                 isColor={""}
                 images={[
                   {
-                    id: selectedSizeImage?.id,
-                    src: selectedSizeImage?.source_url,
+                    id: state.selectedSizeImage?.id,
+                    src: state.selectedSizeImage?.source_url,
                   },
                 ]}
               />
-            )) || <HiPhoto className="w-[30rem] h-[200px] mx-auto my-4" />}
+            ) : (
+              <HiPhoto className="w-[30rem] h-[200px] mx-auto my-4" />
+            )}
           </div>
-          <div className="col-span-2 ">
+          <div className="col-span-2">
             <SpreadSheet
               productId={product?.product?.id}
               product={product?.product}
               globalSizes={localSizes}
-              selectedImage={selectedSizeImage}
-              setSelectedImage={setSelectedSizeImage}
+              selectedImage={state.selectedSizeImage}
+              setSelectedImage={(value) =>
+                setState((prev) => ({ ...prev, selectedSizeImage: value }))
+              }
               sessionUser={sessionUser}
             />
           </div>
@@ -928,13 +928,8 @@ export default function ProductDetail({
       <TabsContent value="attributes" className="max-w-[54rem] p-4">
         <div className="p-4 bg-black text-white min-h-screen w-full">
           {product && productAttributes && (
-            <Button
-              onClick={() => handleStoreAttributes()}
-              className=" text-black mb-4"
-
-              // disabled={attLoading}
-            >
-              {attLoading ? (
+            <Button onClick={handleStoreAttributes} className="text-black mb-4">
+              {state.attLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Save Changes"
@@ -942,7 +937,7 @@ export default function ProductDetail({
             </Button>
           )}
           <div className="max-w-4xl mx-auto">
-            {(product &&
+            {product &&
               productAttributes &&
               Object.entries(productAttributes).map(([attribute, values]) => (
                 <div
@@ -951,9 +946,9 @@ export default function ProductDetail({
                 >
                   <div>
                     <h3 className="text-lg font-semibold mb-2 capitalize text-white">
-                      {attribute == "pa_colour"
+                      {attribute === "pa_colour"
                         ? "Colour"
-                        : attribute == "pa_size"
+                        : attribute === "pa_size"
                         ? "Size"
                         : attribute}
                     </h3>
@@ -969,7 +964,7 @@ export default function ProductDetail({
                   </div>
                   <div>
                     <Select
-                      value={mappings[attribute] || ""}
+                      value={state.mappings[attribute] || ""}
                       onValueChange={(value) =>
                         handleMappingChange(attribute, value)
                       }
@@ -991,11 +986,11 @@ export default function ProductDetail({
                         ))}
                       </SelectContent>
                     </Select>
-                    {mappings[attribute] &&
+                    {state.mappings[attribute] &&
                       values.map((value, index) => (
                         <Select
                           key={index}
-                          value={replacements[attribute]?.[value] || ""}
+                          value={state.replacements[attribute]?.[value] || ""}
                           onValueChange={(newValue) =>
                             handleReplacementChange(attribute, value, newValue)
                           }
@@ -1004,7 +999,7 @@ export default function ProductDetail({
                             <SelectValue placeholder={`Replace ${value}`} />
                           </SelectTrigger>
                           <SelectContent className="bg-black border-gray-800 text-white">
-                            {globalAttributes[mappings[attribute]].map(
+                            {globalAttributes[state.mappings[attribute]].map(
                               (option) => (
                                 <SelectItem
                                   key={option}
@@ -1020,11 +1015,7 @@ export default function ProductDetail({
                       ))}
                   </div>
                 </div>
-              ))) || (
-              <h3 className="text-lg font-semibold mb-2 capitalize text-white">
-                No local attributes found
-              </h3>
-            )}
+              ))}
           </div>
         </div>
       </TabsContent>

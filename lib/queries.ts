@@ -378,7 +378,90 @@ export async function updateProductTableData(productId, tableData, token) {
     return null;
   }
 }
+interface ImageMetadata {
+  imageType: "product" | "person";
 
+  gender?: string;
+
+  skinColor?: string;
+}
+
+export async function updateImageMetadata(
+  imageId: string,
+
+  metadata: ImageMetadata,
+
+  token: string,
+): Promise<boolean> {
+  const mutation = `
+
+    mutation UpdateImageMetadata($id: ID!, $imageType: String, $gender: String, $skinColor: String) {
+
+      updateImageMetadata(input: {
+
+        id: $id,
+
+        imageType: $imageType,
+
+        gender: $gender,
+
+        skinColor: $skinColor
+
+      }) {
+
+        success
+
+         image{
+      imageMetadata{
+        imageType
+        
+      }
+    }
+
+      }
+
+    }
+
+  `;
+
+  const variables = {
+    id: decodeBase64Id(imageId),
+
+    ...metadata,
+  };
+
+  try {
+    const response = await fetch("https://backend.02xz.com/graphql", {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+
+        Authorization: `Bearer ${token}`,
+      },
+
+      body: JSON.stringify({
+        query: mutation,
+
+        variables,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.errors) {
+      console.error("GraphQL errors:", result.errors);
+
+      return false;
+    }
+
+    return result.data?.updateImageMetadata?.success || false;
+  } catch (error) {
+    console.error("Error updating image metadata:", error);
+
+    return false;
+  }
+}
 export async function fetchProductById(id: string): Promise<ProductData> {
   const decodedid = decodeBase64Id(id);
   console.log("decodedid", decodedid);
@@ -399,6 +482,7 @@ export async function fetchProductById(id: string): Promise<ProductData> {
      imagePool{
       imagePool(first: 100){
 				nodes{
+          id
 					sourceUrl
         }
       }

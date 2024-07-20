@@ -148,6 +148,7 @@ interface SingleProduct {
   imagePool: {
     imagePool: {
       nodes: {
+        id: any;
         sourceUrl: string;
       }[];
     };
