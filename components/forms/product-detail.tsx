@@ -36,14 +36,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Cloud,
-  CreditCard,
-  ImageIcon,
-  Loader2,
-  TagIcon,
-  UserPlus,
-} from "lucide-react";
+import { Save, ImageIcon, Loader2, TagIcon, UserPlus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "../ui/scroll-area";
 import {
@@ -71,6 +64,9 @@ import { HamburgerMenuIcon, SizeIcon } from "@radix-ui/react-icons";
 import { Badge } from "../ui/badge";
 import toast from "react-hot-toast";
 import ImagePickerModal from "@/components/extension/gallery/ImagePickerModal";
+
+import { Input } from "../ui/input";
+
 import {
   getWordPressMedia,
   triggerImagePoolUpdate,
@@ -87,6 +83,7 @@ import Sizes from "../extension/sizes";
 import TextForm from "../extension/textForm";
 
 export default function ProductDetail({ product, sessionUser }) {
+  console.log("MAIN PRODUCT", product);
   const [state, setState] = useState({
     images: [],
     galleryImages: [],
@@ -117,7 +114,26 @@ export default function ProductDetail({ product, sessionUser }) {
     imageMetadata: {},
     mappings: {},
     replacements: {},
+    editedTabs: {
+      overview: false,
+      media: false,
+      size: false,
+      text: false,
+      attributes: false,
+    },
   });
+
+  useEffect(() => {
+    // Set default values for color and size
+    setState((prev) => ({
+      ...prev,
+      mappings: {
+        ...prev.mappings,
+        pa_colour: "colour",
+        pa_size: "size",
+      },
+    }));
+  }, []);
 
   const { data } = useSession();
 
@@ -220,6 +236,7 @@ export default function ProductDetail({ product, sessionUser }) {
 
   const handleSaveChanges = async () => {
     try {
+      markTabAsEdited("media");
       setState((prev) => ({ ...prev, loading: true }));
       console.log(state);
       const result = await updateProductImage(
@@ -272,6 +289,15 @@ export default function ProductDetail({ product, sessionUser }) {
       },
     }));
   };
+  const markTabAsEdited = (tabName) => {
+    setState((prev) => ({
+      ...prev,
+      editedTabs: {
+        ...prev.editedTabs,
+        [tabName]: true,
+      },
+    }));
+  };
 
   // Handle Gender Change
   const handleGenderChange = (image, gender) => {
@@ -318,7 +344,7 @@ export default function ProductDetail({ product, sessionUser }) {
                 images: [
                   ...c.images,
                   {
-                    id: c.images.length,
+                    id: image.id,
                     src: image.sourceUrl,
                     alt: `Image ${c.images.length}`,
                   },
@@ -337,7 +363,7 @@ export default function ProductDetail({ product, sessionUser }) {
               color: color,
               images: [
                 {
-                  id: 0,
+                  id: image.id,
                   src: image.sourceUrl,
                   alt: `Image 0`,
                 },
@@ -362,6 +388,7 @@ export default function ProductDetail({ product, sessionUser }) {
 
   const handleStoreAttributes = async () => {
     try {
+      markTabAsEdited("attributes");
       setState((prev) => ({ ...prev, attLoading: true }));
       if (!data.user) {
         toast.error("You need to be logged in to save changes.");
@@ -401,6 +428,18 @@ export default function ProductDetail({ product, sessionUser }) {
     }));
   };
 
+  const handleAddToSizes = (image: any) => {
+    console.log("size", image);
+
+    setState((prev) => ({
+      ...prev,
+      selectedSizeImage: {
+        id: 1,
+        source_url: image.sourceUrl,
+      },
+    }));
+  };
+
   const handleReplacementChange = (attribute, originalValue, newValue) => {
     setState((prev) => ({
       ...prev,
@@ -435,6 +474,7 @@ export default function ProductDetail({ product, sessionUser }) {
   );
 
   const handleSaveMetadata = async (imageId) => {
+    markTabAsEdited("media");
     const metadata = state.imageMetadata[imageId] || {
       imageType: "product",
       gender: "",
@@ -454,15 +494,37 @@ export default function ProductDetail({ product, sessionUser }) {
       toast.error("No metadata found for this image");
     }
   };
+  const attributeNames = {
+    pa_colour: "Colour",
+    pa_size: "Size",
+  };
+
+  const EditableTabsTrigger = ({ value, children }) => (
+    <TabsTrigger
+      value={value}
+      className="relative h-[40px] w-full flex justify-between items-center gap-2"
+    >
+      {children}
+      {state.editedTabs[value] && (
+        <span
+          style={{
+            zIndex: 999,
+          }}
+          className="w-4 h-4 rounded-[50%] bg-red-500"
+        ></span>
+      )}
+      {/* <div className="w-[1px] h-8 bg-gray-500 dark:bg-gray-700" /> */}
+    </TabsTrigger>
+  );
 
   return (
     <Tabs className="w-full" defaultValue="overview">
-      <TabsList className="grid w-full grid-cols-5">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="media">Media</TabsTrigger>
-        <TabsTrigger value="size">Size</TabsTrigger>
-        <TabsTrigger value="text">Text</TabsTrigger>
-        <TabsTrigger value="attributes">Attributes</TabsTrigger>
+      <TabsList className="grid w-full h-[50px] grid-cols-5">
+        <EditableTabsTrigger value="overview">Overview</EditableTabsTrigger>
+        <EditableTabsTrigger value="media">Media</EditableTabsTrigger>
+        <EditableTabsTrigger value="size">Size</EditableTabsTrigger>
+        <EditableTabsTrigger value="text">Text</EditableTabsTrigger>
+        <EditableTabsTrigger value="attributes">Attributes</EditableTabsTrigger>
       </TabsList>
       <TabsContent value="overview">
         <Card className="flex justify-between items-start p-4">
@@ -582,9 +644,16 @@ export default function ProductDetail({ product, sessionUser }) {
                   isColor={false}
                   images={state.galleryImages}
                   first={state.first}
+                  state={state}
+                  handleImageTypeChange={handleImageTypeChange}
+                  handleGenderChange={handleGenderChange}
+                  handleSkinColorChange={handleSkinColorChange}
+                  handleSaveMetadata={handleSaveMetadata}
+                  handleAddToImagesColor={handleAddToImagesColor}
                   setFirst={(value) =>
                     setState((prev) => ({ ...prev, first: value }))
                   }
+                  product={product || {}}
                 />
                 <div className="relative mx-auto max-w-[54rem] rounded-xl border bg-black from-gray-100 from-0% to-gray-200 to-100% shadow-lg">
                   <div className="sticky top-0 z-[1] bg-white/10 flex min-h-[3rem] flex-wrap items-center gap-1 bg-black overflow-y-hidden border-b px-4 py-2 [&_*]:leading-6">
@@ -616,6 +685,7 @@ export default function ProductDetail({ product, sessionUser }) {
                         const colorImage = state.colorImages?.find(
                           (c) => c.color.toLowerCase() === color.toLowerCase(),
                         );
+                        console.log("COLOR", colorImage);
                         return (
                           <div
                             key={idx}
@@ -625,7 +695,14 @@ export default function ProductDetail({ product, sessionUser }) {
                             {colorImage?.images.length > 0 ? (
                               <Gallery
                                 isColor={color}
+                                state={state}
+                                handleImageTypeChange={handleImageTypeChange}
+                                handleGenderChange={handleGenderChange}
+                                handleSkinColorChange={handleSkinColorChange}
+                                handleSaveMetadata={handleSaveMetadata}
+                                handleAddToImagesColor={handleAddToImagesColor}
                                 images={colorImage.images}
+                                product={product || {}}
                               />
                             ) : (
                               <span className="flex flex-col justify-start items-start w-full">
@@ -695,123 +772,7 @@ export default function ProductDetail({ product, sessionUser }) {
                                     <span>Add to Sizes</span>
                                   </DropdownMenuItem>
                                 </DropdownMenuGroup>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuSub>
-                                  <DropdownMenuSubTrigger>
-                                    <TagIcon className="mr-2 h-4 w-4" />
-                                    <span>Image Metadata</span>
-                                  </DropdownMenuSubTrigger>
-                                  <DropdownMenuSubContent className="w-full p-4 bg-gray-200 text-black">
-                                    <div className="space-y-4">
-                                      <div>
-                                        <Label className="mb-2 block">
-                                          Image Type
-                                        </Label>
-                                        <Select
-                                          value={
-                                            state.imageMetadata[image.id]
-                                              ?.imageType || "product"
-                                          }
-                                          onValueChange={(value) =>
-                                            handleImageTypeChange(image, value)
-                                          }
-                                        >
-                                          <SelectTrigger className="w-full">
-                                            <SelectValue placeholder="Select Type" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="product">
-                                              Product
-                                            </SelectItem>
-                                            <SelectItem value="person">
-                                              Person
-                                            </SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      {state.imageMetadata[image.id]
-                                        ?.imageType === "person" && (
-                                        <div>
-                                          <div>
-                                            <Label
-                                              htmlFor="gender"
-                                              className="mb-1 block"
-                                            >
-                                              Gender
-                                            </Label>
-                                            <Select
-                                              value={
-                                                state.imageMetadata[image.id]
-                                                  ?.gender || ""
-                                              }
-                                              onValueChange={(value) =>
-                                                handleGenderChange(image, value)
-                                              }
-                                            >
-                                              <SelectTrigger className="w-full">
-                                                <SelectValue placeholder="Select Gender" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="male">
-                                                  Male
-                                                </SelectItem>
-                                                <SelectItem value="female">
-                                                  Female
-                                                </SelectItem>
-                                                <SelectItem value="other">
-                                                  Other
-                                                </SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                          <div>
-                                            <Label
-                                              htmlFor="skinColor"
-                                              className="mb-1 block"
-                                            >
-                                              Skin Color
-                                            </Label>
-                                            <Select
-                                              value={
-                                                state.imageMetadata[image.id]
-                                                  ?.skinColor || ""
-                                              }
-                                              onValueChange={(value) =>
-                                                handleSkinColorChange(
-                                                  image,
-                                                  value,
-                                                )
-                                              }
-                                            >
-                                              <SelectTrigger className="w-full">
-                                                <SelectValue placeholder="Select Skin Color" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="light">
-                                                  Light
-                                                </SelectItem>
-                                                <SelectItem value="medium">
-                                                  Medium
-                                                </SelectItem>
-                                                <SelectItem value="dark">
-                                                  Dark
-                                                </SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                        </div>
-                                      )}
-                                      <Button
-                                        className="bg-black text-white hover:bg-gray-800"
-                                        onClick={() =>
-                                          handleSaveMetadata(image.id)
-                                        }
-                                      >
-                                        Save Metadata
-                                      </Button>
-                                    </div>
-                                  </DropdownMenuSubContent>
-                                </DropdownMenuSub>
+
                                 <DropdownMenuSeparator />
                                 {product?.product?.attributes?.edges[0]?.node
                                   ?.options && (
@@ -885,138 +846,143 @@ export default function ProductDetail({ product, sessionUser }) {
           </CardContent>
         </Card>
       </TabsContent>
-      <TabsContent value="size" className="py-10 h-[800px] overflow-y-auto">
-        <div className="flex justify-between items-start h-full">
-          <div className="max-w-[400px]">
-            {state.selectedSizeImage ? (
-              <Gallery
-                first={null}
-                setFirst={null}
-                isColor={""}
-                images={[
-                  {
-                    id: state.selectedSizeImage?.id,
-                    src: state.selectedSizeImage?.source_url,
-                  },
-                ]}
+      <TabsContent value="size" className="py-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="md:col-span-1">
+            <CardHeader>
+              <CardTitle>Size Chart Image</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {state.selectedSizeImage ? (
+                <div className="flex items-center justify-center bg-gray-100 rounded-lg h-64">
+                  <img
+                    src={state.selectedSizeImage.source_url}
+                    alt="Size Chart"
+                    className="w-full h-full object-cover cursor-pointer"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center bg-gray-100 rounded-lg h-64">
+                  <HiPhoto className="w-24 h-24 text-gray-400" />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Size Information</CardTitle>
+            </CardHeader>
+            <CardContent className="max-h-[600px] overflow-y-auto">
+              <SpreadSheet
+                productId={product?.product?.id}
+                product={product?.product}
+                markTabAsEdited={markTabAsEdited}
+                globalSizes={localSizes}
+                selectedImage={state.selectedSizeImage}
+                setSelectedImage={(value) =>
+                  setState((prev) => ({ ...prev, selectedSizeImage: value }))
+                }
+                sessionUser={sessionUser}
               />
-            ) : (
-              <HiPhoto className="w-[30rem] h-[200px] mx-auto my-4" />
-            )}
-          </div>
-          <div className="col-span-2">
-            <SpreadSheet
-              productId={product?.product?.id}
-              product={product?.product}
-              globalSizes={localSizes}
-              selectedImage={state.selectedSizeImage}
-              setSelectedImage={(value) =>
-                setState((prev) => ({ ...prev, selectedSizeImage: value }))
-              }
-              sessionUser={sessionUser}
-            />
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </TabsContent>
       <TabsContent value="text" className="py-10 h-[800px] overflow-y-auto">
         <TextForm
           product={product?.product}
           user={data.user}
+          markTabAsEdited={markTabAsEdited}
           sessionUser={sessionUser}
         />
       </TabsContent>
-      <TabsContent value="attributes" className="max-w-[54rem] p-4">
-        <div className="p-4 bg-black text-white min-h-screen w-full">
-          {product && productAttributes && (
-            <Button onClick={handleStoreAttributes} className="text-black mb-4">
+      <TabsContent value="attributes" className="w-full p-4">
+        <div className="flex flex-col space-y-6 p-6 bg-black min-h-screen">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-white dark:text-white">
+              Product Attributes
+            </h2>
+            <Button
+              onClick={handleStoreAttributes}
+              className="bg-white hover:bg-white/10 text-black"
+            >
               {state.attLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
-                "Save Changes"
+                <Save className="h-4 w-4 mr-2" />
               )}
+              Save Changes
             </Button>
-          )}
-          <div className="max-w-4xl mx-auto">
-            {product &&
-              productAttributes &&
-              Object.entries(productAttributes).map(([attribute, values]) => (
-                <div
-                  key={attribute}
-                  className="mb-8 grid grid-cols-2 gap-4 items-start"
-                >
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2 capitalize text-white">
-                      {attribute === "pa_colour"
-                        ? "Colour"
-                        : attribute === "pa_size"
-                        ? "Size"
-                        : attribute}
-                    </h3>
-                    {values.map((value, index) => (
-                      <input
-                        key={index}
-                        type="text"
-                        value={value}
-                        readOnly
-                        className="block w-full p-2 mb-2 bg-black border border-gray-800 rounded text-white"
-                      />
-                    ))}
-                  </div>
-                  <div>
+          </div>
+
+          {product && productAttributes && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {Object.entries(productAttributes).map(([attribute, values]) => (
+                <Card key={attribute}>
+                  <CardHeader>
+                    <CardTitle>
+                      {attributeNames[attribute] ||
+                        attribute.replace("pa_", "")}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <Select
                       value={state.mappings[attribute] || ""}
                       onValueChange={(value) =>
                         handleMappingChange(attribute, value)
                       }
                     >
-                      <SelectTrigger className="w-full mb-2 bg-black border-gray-800 text-white">
+                      <SelectTrigger className="w-full">
                         <SelectValue
-                          placeholder={`Select ${attribute} mapping`}
+                          placeholder={`Select ${attribute.replace(
+                            "pa_",
+                            "",
+                          )} mapping`}
                         />
                       </SelectTrigger>
-                      <SelectContent className="bg-black border-gray-800 text-white">
+                      <SelectContent>
                         {Object.keys(globalAttributes).map((key) => (
-                          <SelectItem
-                            key={key}
-                            value={key}
-                            className="hover:bg-gray-800"
-                          >
+                          <SelectItem key={key} value={key}>
                             {key.charAt(0).toUpperCase() + key.slice(1)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {state.mappings[attribute] &&
-                      values.map((value, index) => (
+                    {values.map((value, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <Input
+                          type="text"
+                          value={value}
+                          readOnly
+                          className="flex-1"
+                        />
                         <Select
-                          key={index}
                           value={state.replacements[attribute]?.[value] || ""}
                           onValueChange={(newValue) =>
                             handleReplacementChange(attribute, value, newValue)
                           }
                         >
-                          <SelectTrigger className="w-full mt-2 bg-black border-gray-800 text-white">
+                          <SelectTrigger className="flex-1">
                             <SelectValue placeholder={`Replace ${value}`} />
                           </SelectTrigger>
-                          <SelectContent className="bg-black border-gray-800 text-white">
-                            {globalAttributes[state.mappings[attribute]].map(
+                          <SelectContent>
+                            {globalAttributes[state.mappings[attribute]]?.map(
                               (option) => (
-                                <SelectItem
-                                  key={option}
-                                  value={option}
-                                  className="hover:bg-gray-800"
-                                >
+                                <SelectItem key={option} value={option}>
                                   {option}
                                 </SelectItem>
                               ),
                             )}
                           </SelectContent>
                         </Select>
-                      ))}
-                  </div>
-                </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
               ))}
-          </div>
+            </div>
+          )}
         </div>
       </TabsContent>
     </Tabs>

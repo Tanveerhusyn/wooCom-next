@@ -1,15 +1,26 @@
-"use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { useSession } from "next-auth/react";
+import { Loader2 } from "lucide-react";
 import { Label } from "../ui/label";
-import {
-  SelectValue,
-  SelectTrigger,
-  SelectItem,
-  SelectContent,
-  Select,
-} from "../ui/select";
 import { Input } from "../ui/input";
-import { Textarea } from "../ui/textarea";
+import { Button } from "../ui/button";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FancyMultipleSelect from "./fancy-multiple-select";
 import {
   getAllProductCategories,
@@ -19,11 +30,13 @@ import {
   updateSeoFields,
 } from "@/lib/queries";
 import toast from "react-hot-toast";
-import { Button } from "../ui/button";
-import { useSession } from "next-auth/react";
-import { Loader2 } from "lucide-react";
 
-export default function TextForm({ product, user, sessionUser }) {
+export default function ImprovedProductForm({
+  product,
+  user,
+  sessionUser,
+  markTabAsEdited,
+}) {
   const [tags, setTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -38,11 +51,14 @@ export default function TextForm({ product, user, sessionUser }) {
     name: "",
   });
   const [productTitle, setProductTitle] = useState("");
-  const [selectedCat, setSelectedCat] = useState();
+  const [selectedCat, setSelectedCat] = useState("");
   const [productDescription, setProductDescription] = useState("");
   const [fit, setFit] = useState("");
   const [style, setStyle] = useState("");
   const [materialCare, setMaterialCare] = useState("");
+  const [gender, setGender] = useState("");
+  const [collection, setCollection] = useState("");
+
   const { data } = useSession();
 
   useEffect(() => {
@@ -77,6 +93,7 @@ export default function TextForm({ product, user, sessionUser }) {
   const handleSaveChanges = async () => {
     try {
       setLoading(true);
+      markTabAsEdited("text");
       if (!data.user) {
         toast.error("You need to be logged in to save changes.");
         return;
@@ -107,7 +124,6 @@ export default function TextForm({ product, user, sessionUser }) {
         parsedUser.accessToken,
       );
 
-      console.log("updateProductExtrasResponse", updateProductExtrasResponse);
       const updateSeoFieldsResponse = await updateSeoFields(
         product.id,
         seoTitle,
@@ -117,9 +133,10 @@ export default function TextForm({ product, user, sessionUser }) {
       if (
         updateProductResponse &&
         updateSeoFieldsResponse &&
-        updateProductCategoriesResponse
+        updateProductCategoriesResponse &&
+        updateProductExtrasResponse
       ) {
-        toast.success("Changes saved successfully.");
+        toast.success("All changes saved successfully.");
       } else {
         toast.error("Some changes could not be saved. Please try again.");
       }
@@ -132,140 +149,247 @@ export default function TextForm({ product, user, sessionUser }) {
     }
   };
 
+  const modules = useMemo(
+    () => ({
+      toolbar: [
+        [{ header: [1, 2, false] }],
+        ["bold", "italic", "underline", "strike", "blockquote"],
+        [
+          { list: "ordered" },
+          { list: "bullet" },
+          { indent: "-1" },
+          { indent: "+1" },
+        ],
+        ["link", "image"],
+        ["clean"],
+      ],
+    }),
+    [],
+  );
+
+  const quillStyle = {
+    height: "400px", // Set a fixed height
+    marginBottom: "20px",
+  };
+
+  const formats = [
+    "header",
+    "bold",
+    "italic",
+    "underline",
+    "strike",
+    "blockquote",
+    "list",
+    "bullet",
+    "indent",
+    "link",
+    "image",
+  ];
+
   return (
-    <div className="bg-black rounded-lg p-6 h-screen">
-      <div className=" mx-auto  space-y-8">
-        <div className="flex w-full justify-end">
-          <Button
-            variant="default"
-            onClick={handleSaveChanges}
-            className="px-8 py-2"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Save Changes
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="product-title">Product Title</Label>
-            <Input
-              id="product-title"
-              value={productTitle}
-              onChange={(e) => setProductTitle(e.target.value)}
-              placeholder="Product Title"
-            />
+    <div className="container w-full min-w-[80vw] mx-[0px] h-[650px] py-2">
+      <Card className="flex flex-col md:flex-row h-full min-h-[500px]">
+        <Tabs
+          defaultValue="basic-info"
+          className="flex flex-col md:flex-row w-full"
+        >
+          <div className="md:w-1/4 border-r">
+            <CardHeader>
+              <CardTitle>Edit Product</CardTitle>
+              <CardDescription>
+                Update product details, SEO information, and more.
+              </CardDescription>
+            </CardHeader>
+            <TabsList className="flex flex-col justify-between bg-transparent h-[70%] space-y-2">
+              <div className="w-[90%]">
+                <TabsTrigger
+                  value="basic-info"
+                  className="w-full justify-start data-[state=active]:bg-white data-[state=active]:text-black"
+                >
+                  Basic Info
+                </TabsTrigger>
+                <TabsTrigger
+                  value="details"
+                  className="w-full justify-start data-[state=active]:bg-white data-[state=active]:text-black"
+                >
+                  Details
+                </TabsTrigger>
+                <TabsTrigger
+                  value="seo"
+                  className="w-full justify-start data-[state=active]:bg-white data-[state=active]:text-black"
+                >
+                  SEO
+                </TabsTrigger>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={handleSaveChanges} disabled={loading}>
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : null}
+                  Save All Changes
+                </Button>
+              </div>
+            </TabsList>
           </div>
+          <div className="md:w-3/4">
+            <CardContent className="pt-6">
+              <TabsContent value="basic-info">
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-bold">{productTitle}</h2>
 
-          <div className="space-y-2">
-            <Label htmlFor="product-category">Product Category</Label>
-            <Select
-              id="product-category"
-              onValueChange={(value) => setSelectedCat(value)}
-              value={selectedCat}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="product-title">Product Title</Label>
+                      <Input
+                        id="product-title"
+                        value={productTitle}
+                        onChange={(e) => setProductTitle(e.target.value)}
+                        placeholder="Product Title"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="product-category">Product Category</Label>
+                      <Select
+                        id="product-category"
+                        onValueChange={(value) => setSelectedCat(value)}
+                        value={selectedCat}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="product-description">
+                      Product Description
+                    </Label>
+                    <div className="quill-editor" style={quillStyle}>
+                      <ReactQuill
+                        theme="snow"
+                        value={productDescription}
+                        onChange={setProductDescription}
+                        modules={modules}
+                        formats={formats}
+                        style={{ height: "100%" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+              <TabsContent value="details">
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-bold">Product Details</h2>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fit">Fit</Label>
+                      <Input
+                        id="fit"
+                        value={fit}
+                        onChange={(e) => setFit(e.target.value)}
+                        placeholder="Fit"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="style">Style</Label>
+                      <Input
+                        id="style"
+                        value={style}
+                        onChange={(e) => setStyle(e.target.value)}
+                        placeholder="Style"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="material-care">Material & Care</Label>
+                      <Input
+                        id="material-care"
+                        value={materialCare}
+                        onChange={(e) => setMaterialCare(e.target.value)}
+                        placeholder="Material & Care"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fit">Gender</Label>
+                      <Input
+                        id="fit"
+                        value={gender}
+                        onChange={(e) => setGender(e.target.value)}
+                        placeholder="Gender"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="style">Collection</Label>
+                      <Input
+                        id="style"
+                        value={collection}
+                        onChange={(e) => setCollection(e.target.value)}
+                        placeholder="Collection"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="product-tags">Product Tags</Label>
+                    <FancyMultipleSelect
+                      tags={product.productTags.nodes}
+                      selectedTags={selectedTags}
+                      setSelectedTags={setSelectedTags}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+              <TabsContent value="seo">
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-bold">SEO Information</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="yoast-seo-title">SEO Title</Label>
+                      <Input
+                        id="yoast-seo-title"
+                        value={seoTitle}
+                        onChange={(e) => setSeoTitle(e.target.value)}
+                        placeholder="SEO Title"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="yoast-seo-slug">SEO Slug</Label>
+                      <Input
+                        id="yoast-seo-slug"
+                        value={slug}
+                        onChange={(e) => setSlug(e.target.value)}
+                        placeholder="SEO Slug"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="yoast-meta-description">
+                      Meta Description
+                    </Label>
+
+                    <div className="quill-editor" style={quillStyle}>
+                      <ReactQuill
+                        theme="snow"
+                        value={metaDesc}
+                        onChange={setMetaDesc}
+                        modules={modules}
+                        formats={formats}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </CardContent>
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="product-description">Product Description</Label>
-          <Textarea
-            id="product-description"
-            rows={5}
-            value={productDescription}
-            onChange={(e) => setProductDescription(e.target.value)}
-            placeholder="Product Description"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="fit">Fit</Label>
-            <Input
-              id="fit"
-              value={fit}
-              onChange={(e) => setFit(e.target.value)}
-              placeholder="Fit"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="style">Style</Label>
-            <Input
-              id="style"
-              value={style}
-              onChange={(e) => setStyle(e.target.value)}
-              placeholder="Style"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="material-care">Material & Care</Label>
-            <Input
-              id="material-care"
-              value={materialCare}
-              onChange={(e) => setMaterialCare(e.target.value)}
-              placeholder="Material & Care"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="product-tags">Product Tags</Label>
-          <FancyMultipleSelect
-            tags={product.productTags.nodes}
-            selectedTags={selectedTags}
-            setSelectedTags={setSelectedTags}
-          />
-        </div>
-
-        <div className="space-y-6">
-          <h3 className="text-xl font-semibold">SEO Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="yoast-seo-title">SEO Title</Label>
-              <Input
-                id="yoast-seo-title"
-                value={seoTitle}
-                onChange={(e) => setSeoTitle(e.target.value)}
-                placeholder="SEO Title"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="yoast-seo-slug">SEO Slug</Label>
-              <Input
-                id="yoast-seo-slug"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                placeholder="SEO Slug"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="yoast-meta-description">Meta Description</Label>
-            <Textarea
-              id="yoast-meta-description"
-              rows={3}
-              value={metaDesc}
-              onChange={(e) => setMetaDesc(e.target.value)}
-              placeholder="Meta Description"
-            />
-          </div>
-        </div>
-      </div>
+        </Tabs>
+      </Card>
     </div>
   );
 }

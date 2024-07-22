@@ -97,6 +97,8 @@ const EditableCell = ({ initialValue, columnId, rowIndex, updateData }) => {
 const App = ({
   productId,
   product,
+  markTabAsEdited,
+
   selectedImage,
   globalSizes,
   sessionUser,
@@ -225,6 +227,7 @@ const App = ({
   const handleStoreData = async () => {
     try {
       setLoading(true);
+      markTabAsEdited("size");
       const parsedValue = sessionUser ? sessionUser : {};
 
       if (parsedValue && parsedValue.user.accessToken) {

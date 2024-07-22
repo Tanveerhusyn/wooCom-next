@@ -193,6 +193,7 @@ interface SingleProduct {
   stockStatus: string;
   galleryImages: {
     nodes: {
+      id: string;
       sourceUrl: string;
     }[];
   };

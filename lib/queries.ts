@@ -538,6 +538,7 @@ export async function fetchProductById(id: string): Promise<ProductData> {
       stockStatus
       galleryImages {
         nodes {
+        id
           sourceUrl
         }
       }

@@ -85,3 +85,8 @@
     height: 100dvh;
   }
 }
+
+.quill-editor .ql-container {
+  height: calc(100% - 42px) !important;
+  overflow-y: auto;
+}

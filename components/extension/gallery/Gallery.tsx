@@ -25,10 +25,25 @@ import GalleryTitle from "./GalleryTitle";
 import GalleryFooter from "./GalleryFooter";
 import ImageBox from "./ImageBox";
 
-const Gallery = ({ images, isColor, first, setFirst }) => {
+const Gallery = ({
+  images,
+  isColor,
+  first,
+  setFirst,
+  state,
+  handleImageTypeChange,
+  handleGenderChange,
+  handleSkinColorChange,
+  handleSaveMetadata,
+  handleAddToImagesColor,
+  product,
+}) => {
+  console.log("COLOR inside", images);
+
   const [imageFiles, setImageFiles] = useState(generatedImages);
   const [marked, setMarked] = useState([]);
 
+  console.log("Gallery.tsx", state);
   useEffect(() => {
     if (images) setImageFiles(images);
   }, [images]);
@@ -146,6 +161,13 @@ const Gallery = ({ images, isColor, first, setFirst }) => {
                       handleMarked={handleMarked}
                       handleFeatured={handleFeatured}
                       setImgBoxElm={setImgBoxElm}
+                      state={state}
+                      handleImageTypeChange={handleImageTypeChange}
+                      handleGenderChange={handleGenderChange}
+                      handleSkinColorChange={handleSkinColorChange}
+                      handleSaveMetadata={handleSaveMetadata}
+                      handleAddToImagesColor={handleAddToImagesColor}
+                      product={product || {}}
                     />
                   ))
                 : imageFiles.map((img, i) => (
@@ -158,6 +180,13 @@ const Gallery = ({ images, isColor, first, setFirst }) => {
                       handleMarked={handleMarked}
                       handleFeatured={handleFeatured}
                       setImgBoxElm={setImgBoxElm}
+                      state={state}
+                      handleImageTypeChange={handleImageTypeChange}
+                      handleGenderChange={handleGenderChange}
+                      handleSkinColorChange={handleSkinColorChange}
+                      handleSaveMetadata={handleSaveMetadata}
+                      handleAddToImagesColor={handleAddToImagesColor}
+                      product={product || {}}
                     />
                   ))}
 
