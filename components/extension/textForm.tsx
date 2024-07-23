@@ -243,7 +243,11 @@ export default function ImprovedProductForm({
                       <Input
                         id="product-title"
                         value={productTitle}
-                        onChange={(e) => setProductTitle(e.target.value)}
+                        onChange={(e) => {
+                          markTabAsEdited("text");
+
+                          setProductTitle(e.target.value);
+                        }}
                         placeholder="Product Title"
                       />
                     </div>
@@ -251,7 +255,11 @@ export default function ImprovedProductForm({
                       <Label htmlFor="product-category">Product Category</Label>
                       <Select
                         id="product-category"
-                        onValueChange={(value) => setSelectedCat(value)}
+                        onValueChange={(value) => {
+                          markTabAsEdited("text");
+
+                          setSelectedCat(value);
+                        }}
                         value={selectedCat}
                       >
                         <SelectTrigger>
@@ -293,7 +301,11 @@ export default function ImprovedProductForm({
                       <Input
                         id="fit"
                         value={fit}
-                        onChange={(e) => setFit(e.target.value)}
+                        onChange={(e) => {
+                          markTabAsEdited("text");
+
+                          setFit(e.target.value);
+                        }}
                         placeholder="Fit"
                       />
                     </div>
@@ -302,7 +314,11 @@ export default function ImprovedProductForm({
                       <Input
                         id="style"
                         value={style}
-                        onChange={(e) => setStyle(e.target.value)}
+                        onChange={(e) => {
+                          markTabAsEdited("text");
+
+                          setStyle(e.target.value);
+                        }}
                         placeholder="Style"
                       />
                     </div>
@@ -311,7 +327,11 @@ export default function ImprovedProductForm({
                       <Input
                         id="material-care"
                         value={materialCare}
-                        onChange={(e) => setMaterialCare(e.target.value)}
+                        onChange={(e) => {
+                          markTabAsEdited("text");
+
+                          setMaterialCare(e.target.value);
+                        }}
                         placeholder="Material & Care"
                       />
                     </div>
@@ -322,7 +342,11 @@ export default function ImprovedProductForm({
                       <Input
                         id="fit"
                         value={gender}
-                        onChange={(e) => setGender(e.target.value)}
+                        onChange={(e) => {
+                          markTabAsEdited("text");
+
+                          setGender(e.target.value);
+                        }}
                         placeholder="Gender"
                       />
                     </div>
@@ -331,7 +355,11 @@ export default function ImprovedProductForm({
                       <Input
                         id="style"
                         value={collection}
-                        onChange={(e) => setCollection(e.target.value)}
+                        onChange={(e) => {
+                          markTabAsEdited("text");
+
+                          setCollection(e.target.value);
+                        }}
                         placeholder="Collection"
                       />
                     </div>
@@ -355,7 +383,11 @@ export default function ImprovedProductForm({
                       <Input
                         id="yoast-seo-title"
                         value={seoTitle}
-                        onChange={(e) => setSeoTitle(e.target.value)}
+                        onChange={(e) => {
+                          markTabAsEdited("text");
+
+                          setSeoTitle(e.target.value);
+                        }}
                         placeholder="SEO Title"
                       />
                     </div>
@@ -364,7 +396,11 @@ export default function ImprovedProductForm({
                       <Input
                         id="yoast-seo-slug"
                         value={slug}
-                        onChange={(e) => setSlug(e.target.value)}
+                        onChange={(e) => {
+                          markTabAsEdited("text");
+
+                          setSlug(e.target.value);
+                        }}
                         placeholder="SEO Slug"
                       />
                     </div>

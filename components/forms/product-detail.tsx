@@ -124,16 +124,26 @@ export default function ProductDetail({ product, sessionUser }) {
   });
 
   useEffect(() => {
-    // Set default values for color and size
-    setState((prev) => ({
-      ...prev,
-      mappings: {
-        ...prev.mappings,
-        pa_colour: "colour",
-        pa_size: "size",
-      },
-    }));
-  }, []);
+    // Initialize mappings based on attribute names
+    if (product?.product?.attributes?.edges) {
+      const initialMappings = product.product.attributes.edges.reduce(
+        (acc, { node }) => {
+          const attributeName = node.name.toLowerCase();
+          if (attributeName.match(/^(pa_)?colou?r$/)) {
+            acc["pa_colour"] = "colour";
+          } else {
+            const mappingKey = attributeName.startsWith("pa_")
+              ? attributeName
+              : `pa_${attributeName}`;
+            acc[mappingKey] = attributeName.replace("pa_", "");
+          }
+          return acc;
+        },
+        {},
+      );
+      setState((prev) => ({ ...prev, mappings: initialMappings }));
+    }
+  }, [product]);
 
   const { data } = useSession();
 
@@ -278,6 +288,8 @@ export default function ProductDetail({ product, sessionUser }) {
   };
 
   const handleImageTypeChange = (image, type) => {
+    markTabAsEdited("media");
+
     setState((prev) => ({
       ...prev,
       imageMetadata: {
@@ -328,6 +340,8 @@ export default function ProductDetail({ product, sessionUser }) {
     }));
   };
   const handleAddToImagesColor = (color, image) => {
+    markTabAsEdited("media");
+
     setState((prev) => {
       const existingColorImages = prev.colorImages || [];
       const colorExists = existingColorImages.some(
@@ -376,6 +390,8 @@ export default function ProductDetail({ product, sessionUser }) {
   };
 
   const handleCustomImageUpload = async (files) => {
+    markTabAsEdited("media");
+
     const result = await uploadImage(files[0], data.user.accessToken);
     if (result) {
       await addImageToProductPoolByUrl(
@@ -394,20 +410,33 @@ export default function ProductDetail({ product, sessionUser }) {
         toast.error("You need to be logged in to save changes.");
         return;
       }
-      const selectedColours = Object.values(
-        state.replacements.colour ||
-          state.replacements.color ||
-          state.replacements.pa_colour,
+
+      const colours = state.replacements["pa_colour"]
+        ? Object.values(state.replacements["pa_colour"])
+        : productAttributes["pa_colour"] || [];
+
+      const sizes = state.replacements["pa_size"]
+        ? Object.values(state.replacements["pa_size"])
+        : productAttributes["pa_size"] || [];
+
+      // Filter out any empty values and ensure all values are strings
+      const filteredColours = colours.filter(
+        (color) => color && typeof color === "string",
       );
-      const selectedSizes = Object.values(
-        state.replacements.size || state.replacements.pa_size,
+      const filteredSizes = sizes.filter(
+        (size) => size && typeof size === "string",
       );
+
+      console.log("Colours to update:", filteredColours);
+      console.log("Sizes to update:", filteredSizes);
+
       const updateProductAttributesResponse = await updateProductAttributes(
         product?.product?.id,
-        selectedColours,
-        selectedSizes,
+        filteredColours,
+        filteredSizes,
         data.user.accessToken,
       );
+
       if (updateProductAttributesResponse) {
         toast.success("Attributes updated successfully.");
       } else {
@@ -422,6 +451,7 @@ export default function ProductDetail({ product, sessionUser }) {
   };
 
   const handleMappingChange = (attribute, value) => {
+    markTabAsEdited("attributes");
     setState((prev) => ({
       ...prev,
       mappings: { ...prev.mappings, [attribute]: value },
@@ -430,6 +460,7 @@ export default function ProductDetail({ product, sessionUser }) {
 
   const handleAddToSizes = (image: any) => {
     console.log("size", image);
+    markTabAsEdited("media");
 
     setState((prev) => ({
       ...prev,
@@ -441,6 +472,8 @@ export default function ProductDetail({ product, sessionUser }) {
   };
 
   const handleReplacementChange = (attribute, originalValue, newValue) => {
+    markTabAsEdited("attributes");
+
     setState((prev) => ({
       ...prev,
       replacements: {
@@ -451,19 +484,6 @@ export default function ProductDetail({ product, sessionUser }) {
         },
       },
     }));
-  };
-
-  const productAttributes = product?.product?.attributes?.edges.reduce(
-    (acc, { node }) => {
-      acc[node.name.toLowerCase()] = node.options;
-      return acc;
-    },
-    {},
-  );
-
-  const globalAttributes = {
-    colour: product?.globalColors?.nodes.map((node) => node.name),
-    size: product?.globalSizes?.nodes.map((node) => node.name),
   };
 
   const localSizes = product?.product?.attributes?.edges[1]?.node?.options?.map(
@@ -494,9 +514,33 @@ export default function ProductDetail({ product, sessionUser }) {
       toast.error("No metadata found for this image");
     }
   };
+  const productAttributes = product?.product?.attributes?.edges.reduce(
+    (acc, { node }) => {
+      const key = node.name.toLowerCase().match(/^(pa_)?colou?r$/)
+        ? "pa_colour"
+        : node.name.toLowerCase().startsWith("pa_")
+        ? node.name.toLowerCase()
+        : `pa_${node.name.toLowerCase()}`;
+      acc[key] = node.options;
+      return acc;
+    },
+    {},
+  );
+
+  const globalAttributes = {
+    colour: product?.globalColors?.nodes.map((node) => node.name),
+    size: product?.globalSizes?.nodes.map((node) => node.name),
+    gender: product?.globalGenders?.nodes.map((node) => node.name),
+    collection: product?.globalCollections?.nodes.map((node) => node.name),
+  };
+
   const attributeNames = {
-    pa_colour: "Colour",
+    pa_colour: "Color",
+    color: "Color",
+    colour: "Color",
     pa_size: "Size",
+    pa_gender: "Gender",
+    pa_collection: "Collection",
   };
 
   const EditableTabsTrigger = ({ value, children }) => (
@@ -923,7 +967,8 @@ export default function ProductDetail({ product, sessionUser }) {
                   <CardHeader>
                     <CardTitle>
                       {attributeNames[attribute] ||
-                        attribute.replace("pa_", "")}
+                        attribute.replace("pa_", "").charAt(0).toUpperCase() +
+                          attribute.replace("pa_", "").slice(1)}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">

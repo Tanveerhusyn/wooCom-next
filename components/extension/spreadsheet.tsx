@@ -279,6 +279,8 @@ const App = ({
   };
 
   const handleDelete = (rowIndex) => {
+    markTabAsEdited("size");
+
     setData((old) => old.filter((_, index) => index !== rowIndex));
   };
 
@@ -287,12 +289,14 @@ const App = ({
       <div className="w-full flex flex-col h-full">
         <div className="grid grid-cols-2 gap-2 max-w-[350px] mb-4">
           <Button
-            onClick={() =>
+            onClick={() => {
+              markTabAsEdited("size");
+
               setData([
                 { bodyPart: "", small: "", medium: "", large: "", xlarge: "" },
                 ...data,
-              ])
-            }
+              ]);
+            }}
             className="w-40"
             variant=""
           >
