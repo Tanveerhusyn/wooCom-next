@@ -500,7 +500,7 @@ export default function ProductDetail({ product, sessionUser }) {
       gender: "",
       skinColor: "",
     };
-    const token = data.user.accessToken;
+    const token = data.user.accessToken || sessionUser.user.accessToken;
     console.log("METADATA", metadata);
     if (metadata) {
       const success = await updateImageMetadata(imageId, metadata, token);
