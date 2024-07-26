@@ -257,7 +257,7 @@ export default function ProductDetail({ product, sessionUser }) {
         product?.product?.id,
         product?.product?.image?.id,
         state.first,
-        data.user.accessToken,
+        data.user.accessToken || sessionUser.user.accessToken,
       );
       const galleryImagesSrc = state.galleryImages
         .filter((img) => img.src !== state.first)
@@ -265,13 +265,13 @@ export default function ProductDetail({ product, sessionUser }) {
       const result2 = await updateGalleryImages(
         product?.product?.id,
         galleryImagesSrc,
-        data.user.accessToken,
+        data.user.accessToken || sessionUser.user.accessToken,
       );
       const stringifiedImgs = processColorImages(state.colorImages);
       const result3 = await updateProductColorImages(
         product?.product?.id,
         stringifiedImgs,
-        data.user.accessToken,
+        data.user.accessToken || sessionUser.user.accessToken,
       );
 
       if (result) toast.success("Image updated successfully");
@@ -438,7 +438,7 @@ export default function ProductDetail({ product, sessionUser }) {
         product?.product?.id,
         filteredColours,
         filteredSizes,
-        data.user.accessToken,
+        data.user.accessToken || sessionUser.user.accessToken,
       );
 
       if (updateProductAttributesResponse) {
