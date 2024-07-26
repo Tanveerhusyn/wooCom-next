@@ -95,6 +95,7 @@ export default function ProductDetail({ product, sessionUser }) {
     selectOptionTwo: "Size",
     first: "",
     loading: false,
+    metaLoading: false,
     attLoading: false,
     files: null,
     colorImages: [],
@@ -162,6 +163,7 @@ export default function ProductDetail({ product, sessionUser }) {
               id: product?.product?.image?.id,
               src: product?.product?.image?.sourceUrl,
               alt: `Image ${product?.product?.image?.id}`,
+              acf: product?.product?.image?.acfImageMetadata || {},
             },
             ...gImages,
           ],
@@ -174,6 +176,7 @@ export default function ProductDetail({ product, sessionUser }) {
               id: product?.product?.image?.id,
               src: product?.product?.image?.sourceUrl,
               alt: `Image ${product?.product?.image?.id}`,
+              acf: product?.product?.image?.acfImageMetadata || {},
             },
           ],
         }));
@@ -227,6 +230,7 @@ export default function ProductDetail({ product, sessionUser }) {
       id: image.id || idx,
       src: image.sourceUrl,
       alt: `Image ${image.id}`,
+      acf: image?.acfImageMetadata || {},
     }));
 
   const callTriggerImagePoolUpdate = async (token) => {
@@ -495,6 +499,7 @@ export default function ProductDetail({ product, sessionUser }) {
 
   const handleSaveMetadata = async (imageId) => {
     markTabAsEdited("media");
+    setState((prev) => ({ ...prev, metaLoading: true }));
     const metadata = state.imageMetadata[imageId] || {
       imageType: "product",
       gender: "",
@@ -513,6 +518,7 @@ export default function ProductDetail({ product, sessionUser }) {
     } else {
       toast.error("No metadata found for this image");
     }
+    setState((prev) => ({ ...prev, metaLoading: false }));
   };
   const productAttributes = product?.product?.attributes?.edges.reduce(
     (acc, { node }) => {

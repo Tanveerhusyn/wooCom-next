@@ -1,5 +1,5 @@
 import { Icons } from "@/components/icons";
-import { any } from "zod";
+import { any, string } from "zod";
 
 export interface NavItem {
   title: string;
@@ -137,6 +137,7 @@ interface SingleProduct {
   id: string;
   name: string;
   description: string;
+
   extras: {
     name: string;
     value: string;
@@ -150,6 +151,12 @@ interface SingleProduct {
       nodes: {
         id: any;
         sourceUrl: string;
+
+        acfImageMetadata: {
+          imageType: string;
+          gender: string;
+          skinColor: string;
+        }[];
       }[];
     };
   };
@@ -171,6 +178,11 @@ interface SingleProduct {
   image: {
     id: string;
     sourceUrl: string;
+    acfImageMetadata: {
+      imageType: string;
+      gender: string;
+      skinColor: string;
+    }[];
   };
   variations?: {
     nodes: {
@@ -195,6 +207,11 @@ interface SingleProduct {
     nodes: {
       id: string;
       sourceUrl: string;
+      acfImageMetadata: {
+        imageType: string;
+        gender: string;
+        skinColor: string;
+      }[];
     }[];
   };
   allPaColour: {

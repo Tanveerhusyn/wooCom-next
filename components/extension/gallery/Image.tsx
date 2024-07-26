@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { TagIcon, UserPlus, Plus } from "lucide-react";
+import { TagIcon, UserPlus, Plus, Circle, Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -51,6 +51,7 @@ const Image = React.memo((props) => {
     ...sanitizedProps
   } = props;
 
+  console.log("Image component rendered", image);
   const {
     attributes,
     listeners,
@@ -111,6 +112,33 @@ const Image = React.memo((props) => {
         src={image?.src}
         alt={image?.id}
       />
+      <Transition
+        show={isHovered}
+        enter="transition-opacity duration-75"
+        enterFrom="opacity-0"
+        enterTo="opacity-100"
+        leave="transition-opacity duration-150"
+        leaveFrom="opacity-100"
+        leaveTo="opacity-0"
+      >
+        <div className="absolute top-2 left-2 flex flex-wrap gap-2">
+          {image?.acf?.imageType && (
+            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-500 text-white">
+              {image?.acf?.imageType}
+            </span>
+          )}
+          {image?.acf?.gender && (
+            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-pink-500 text-white">
+              {image?.acf?.gender}
+            </span>
+          )}
+          {image?.acf?.skinColor && (
+            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-500 text-white">
+              {image?.acf?.skinColor}
+            </span>
+          )}
+        </div>
+      </Transition>
 
       <div
         style={{
@@ -270,7 +298,13 @@ const Image = React.memo((props) => {
                     className="bg-black text-white hover:bg-gray-800"
                     onClick={() => handleSaveMetadata(image.id)}
                   >
-                    Save Metadata
+                    {state.metaLoading ? (
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      </div>
+                    ) : (
+                      <span>Save Metadata</span>
+                    )}
                   </Button>
                 </div>
               </DropdownMenuSubContent>
@@ -280,55 +314,6 @@ const Image = React.memo((props) => {
       </div>
 
       {/* Overlay for buttons */}
-      <Transition
-        show={isHovered || isMarked || isDropdownOpen}
-        enter="transition-opacity duration-75"
-        enterFrom="opacity-0"
-        enterTo="opacity-100"
-        leave="transition-opacity duration-150"
-        leaveFrom="opacity-100"
-        leaveTo="opacity-0"
-      >
-        <div
-          className={`overlay absolute inset-0 grid grid-cols-[repeat(2,_max-content)] place-content-between p-2 ${
-            isMarked ? "backdrop-brightness-105 backdrop-contrast-50" : ""
-          }`}
-        >
-          {/* Selection */}
-          <div>
-            <Switch
-              title={isMarked ? "Unmark item" : "Mark item"}
-              checked={isMarked}
-              onChange={(bool) => handleMarked(image.id, bool)}
-              name={image.id}
-              className="grid place-items-center rounded-full border-2 bg-white text-2xl text-accent"
-            >
-              <span className="sr-only">Mark item</span>
-              <IoCheckmarkCircleSharp
-                className={`fill-current transition-opacity ${
-                  isMarked ? "opacity-100" : "opacity-30 hover:opacity-70"
-                }`}
-              />
-            </Switch>
-          </div>
-
-          {/* Empty cell fillup */}
-          <div></div>
-
-          {/* Imagebox */}
-          <div>
-            {isHovered && (
-              <button
-                className="grid place-items-center rounded-full bg-white text-2xl text-body opacity-70 transition-opacity hover:opacity-100"
-                onClick={() => setImgBoxElm(image)}
-                title="Expand image"
-              >
-                <IoExpand className="p-0.5" />
-              </button>
-            )}
-          </div>
-        </div>
-      </Transition>
     </div>
   );
 });

@@ -397,7 +397,7 @@ export async function updateImageMetadata(
 
     mutation UpdateImageMetadata($id: ID!, $imageType: String, $gender: String, $skinColor: String) {
 
-      updateImageMetadata(input: {
+      updateACFImageMetadata(input: {
 
         id: $id,
 
@@ -411,12 +411,7 @@ export async function updateImageMetadata(
 
         success
 
-         image{
-      imageMetadata{
-        imageType
         
-      }
-    }
 
       }
 
@@ -425,7 +420,7 @@ export async function updateImageMetadata(
   `;
 
   const variables = {
-    id: decodeBase64Id(imageId),
+    id: imageId,
 
     ...metadata,
   };
@@ -445,6 +440,9 @@ export async function updateImageMetadata(
 
         variables,
       }),
+      next: {
+        tags: ["refreshProduct"],
+      },
     });
 
     const result = await response.json();
@@ -455,7 +453,7 @@ export async function updateImageMetadata(
       return false;
     }
 
-    return result.data?.updateImageMetadata?.success || false;
+    return result.data?.updateACFImageMetadata?.success || false;
   } catch (error) {
     console.error("Error updating image metadata:", error);
 
@@ -484,6 +482,12 @@ export async function fetchProductById(id: string): Promise<ProductData> {
 				nodes{
           id
 					sourceUrl
+            acfImageMetadata {
+            imageType
+            gender
+            skinColor
+          }
+          
         }
       }
     }
@@ -513,6 +517,11 @@ export async function fetchProductById(id: string): Promise<ProductData> {
     image {
       id
       sourceUrl
+       acfImageMetadata {
+            imageType
+            gender
+            skinColor
+          }
     }
     ... on VariableProduct {
       id
@@ -540,6 +549,11 @@ export async function fetchProductById(id: string): Promise<ProductData> {
         nodes {
         id
           sourceUrl
+            acfImageMetadata {
+            imageType
+            gender
+            skinColor
+          }
         }
       }
     }
