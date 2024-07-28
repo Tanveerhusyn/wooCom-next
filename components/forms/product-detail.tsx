@@ -365,6 +365,7 @@ export default function ProductDetail({ product, sessionUser }) {
                     id: image.id,
                     src: image.sourceUrl,
                     alt: `Image ${c.images.length}`,
+                    acf: image?.acfImageMetadata || {},
                   },
                 ],
               };
@@ -384,6 +385,7 @@ export default function ProductDetail({ product, sessionUser }) {
                   id: image.id,
                   src: image.sourceUrl,
                   alt: `Image 0`,
+                  acf: image?.acfImageMetadata || {},
                 },
               ],
             },
@@ -440,9 +442,16 @@ export default function ProductDetail({ product, sessionUser }) {
         filteredSizes,
         data.user.accessToken || sessionUser.user.accessToken,
       );
+      const token = data?.user?.accessToken || sessionUser.user.accessToken;
 
       if (updateProductAttributesResponse) {
         toast.success("Attributes updated successfully.");
+
+        const result3 = await updateProductColorImages(
+          product?.product?.id,
+          "",
+          token,
+        );
       } else {
         toast.error("Failed to update attributes.");
       }
@@ -497,28 +506,78 @@ export default function ProductDetail({ product, sessionUser }) {
     }),
   );
 
-  const handleSaveMetadata = async (imageId) => {
+  const handleSaveMetadata = async (imageId, isColor, data) => {
     markTabAsEdited("media");
     setState((prev) => ({ ...prev, metaLoading: true }));
-    const metadata = state.imageMetadata[imageId] || {
-      imageType: "product",
-      gender: "",
-      skinColor: "",
-    };
-    const token = data.user.accessToken || sessionUser.user.accessToken;
-    console.log("METADATA", metadata);
-    if (metadata) {
-      const success = await updateImageMetadata(imageId, metadata, token);
+
+    if (isColor) {
+      setState((prev) => ({
+        ...prev,
+        colorImages: prev.colorImages.map((color) => ({
+          ...color,
+          images: color.images.map((img) =>
+            img.id === imageId ? { ...img, acf: data } : img,
+          ),
+        })),
+      }));
+    }
+
+    setState((prev) => ({
+      ...prev,
+      imageMetadata: {
+        ...prev.imageMetadata,
+        [imageId]: data,
+      },
+    }));
+
+    const token = data?.user?.accessToken || sessionUser.user.accessToken;
+
+    try {
+      // Update image metadata
+      const success = await updateImageMetadata(imageId, data, token);
 
       if (success) {
         toast.success("Image metadata updated successfully");
+
+        if (isColor) {
+          const updatedColorImages = await new Promise((resolve) =>
+            setState((prev) => {
+              const newState = {
+                ...prev,
+                colorImages: prev.colorImages.map((color) => ({
+                  ...color,
+                  images: color.images.map((img) =>
+                    img.id === imageId ? { ...img, acf: data } : img,
+                  ),
+                })),
+              };
+              resolve(newState.colorImages);
+              return newState;
+            }),
+          );
+
+          const stringifiedImgs = processColorImages(updatedColorImages);
+          const result3 = await updateProductColorImages(
+            product?.product?.id,
+            stringifiedImgs,
+            token,
+          );
+
+          if (result3) {
+            toast.success("Color Images updated successfully");
+          } else {
+            toast.error("Failed to update color images");
+          }
+        }
       } else {
         toast.error("Failed to update image metadata");
       }
-    } else {
-      toast.error("No metadata found for this image");
+    } catch (error) {
+      console.error("Error updating metadata:", error);
+      toast.error("An error occurred while updating metadata");
+    } finally {
+      setState((prev) => ({ ...prev, metaLoading: false }));
     }
-    setState((prev) => ({ ...prev, metaLoading: false }));
   };
   const productAttributes = product?.product?.attributes?.edges.reduce(
     (acc, { node }) => {

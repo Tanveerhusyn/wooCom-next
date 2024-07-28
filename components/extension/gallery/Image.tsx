@@ -51,7 +51,9 @@ const Image = React.memo((props) => {
     ...sanitizedProps
   } = props;
 
-  console.log("Image component rendered", image);
+  const [imageType, setImageType] = useState(image?.acf?.imageType);
+  const [gender, setGender] = useState(image?.acf?.gender);
+  const [skinColor, setSkinColor] = useState(image?.acf?.skinColor);
   const {
     attributes,
     listeners,
@@ -113,7 +115,7 @@ const Image = React.memo((props) => {
         alt={image?.id}
       />
       <Transition
-        show={isHovered}
+        show={true}
         enter="transition-opacity duration-75"
         enterFrom="opacity-0"
         enterTo="opacity-100"
@@ -122,19 +124,19 @@ const Image = React.memo((props) => {
         leaveTo="opacity-0"
       >
         <div className="absolute top-2 left-2 flex flex-wrap gap-2">
-          {image?.acf?.imageType && (
+          {imageType && (
             <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-500 text-white">
-              {image?.acf?.imageType}
+              {imageType}
             </span>
           )}
-          {image?.acf?.gender && (
+          {gender && (
             <span className="px-2 py-1 text-xs font-semibold rounded-full bg-pink-500 text-white">
-              {image?.acf?.gender}
+              {gender}
             </span>
           )}
-          {image?.acf?.skinColor && (
+          {skinColor && (
             <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-500 text-white">
-              {image?.acf?.skinColor}
+              {skinColor}
             </span>
           )}
         </div>
@@ -180,9 +182,14 @@ const Image = React.memo((props) => {
                       value={
                         state.imageMetadata[image.id]?.imageType || "product"
                       }
-                      onValueChange={(value) =>
-                        handleImageTypeChange(image, value)
-                      }
+                      onValueChange={(value) => {
+                        setImageType(value);
+                        if (value === "product") {
+                          setGender("");
+                          setSkinColor("");
+                        }
+                        handleImageTypeChange(image, value);
+                      }}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select Type" />
@@ -201,9 +208,10 @@ const Image = React.memo((props) => {
                         </Label>
                         <Select
                           value={state.imageMetadata[image.id]?.gender || ""}
-                          onValueChange={(value) =>
-                            handleGenderChange(image, value)
-                          }
+                          onValueChange={(value) => {
+                            setGender(value);
+                            handleGenderChange(image, value);
+                          }}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select Gender" />
@@ -221,9 +229,10 @@ const Image = React.memo((props) => {
                         </Label>
                         <Select
                           value={state.imageMetadata[image.id]?.skinColor || ""}
-                          onValueChange={(value) =>
-                            handleSkinColorChange(image, value)
-                          }
+                          onValueChange={(value) => {
+                            setSkinColor(value);
+                            handleSkinColorChange(image, value);
+                          }}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select Skin Tone" />
