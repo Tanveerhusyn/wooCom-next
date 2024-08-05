@@ -305,7 +305,13 @@ const Image = React.memo((props) => {
                   )}
                   <Button
                     className="bg-black text-white hover:bg-gray-800"
-                    onClick={() => handleSaveMetadata(image.id)}
+                    onClick={() =>
+                      handleSaveMetadata(image.id, false, {
+                        imageType,
+                        gender,
+                        skinColor,
+                      })
+                    }
                   >
                     {state.metaLoading ? (
                       <div className="flex items-center justify-center">

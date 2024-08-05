@@ -34,6 +34,7 @@ import toast from "react-hot-toast";
 export default function ImprovedProductForm({
   product,
   user,
+  globalData,
   sessionUser,
   markTabAsEdited,
 }) {
@@ -59,6 +60,12 @@ export default function ImprovedProductForm({
   const [gender, setGender] = useState("");
   const [collection, setCollection] = useState("");
 
+  const [features, setFeatures] = useState("");
+  const [material, setMaterial] = useState("");
+  const [neckline, setNeckline] = useState("");
+  const [print, setPrint] = useState("");
+  const [sleeveLength, setSleeveLength] = useState("");
+
   const { data } = useSession();
 
   useEffect(() => {
@@ -75,6 +82,7 @@ export default function ImprovedProductForm({
     setFit(product.extras.fit || "");
     setStyle(product.extras.style || "");
     setMaterialCare(product.extras.materialcare || "");
+
     const parsedValue = sessionUser ? sessionUser : {};
 
     if (parsedValue.user && parsedValue.user.accessToken) {
@@ -121,6 +129,10 @@ export default function ImprovedProductForm({
         fit,
         style,
         materialCare,
+        features,
+        neckline,
+        print,
+        sleeveLength,
         parsedUser.accessToken,
       );
 
@@ -185,6 +197,30 @@ export default function ImprovedProductForm({
     "link",
     "image",
   ];
+
+  const renderSelect = (label, value, setter, options) => (
+    <div className="space-y-2">
+      <Label htmlFor={label.toLowerCase()}>{label}</Label>
+      <Select
+        value={value}
+        onValueChange={(newValue) => {
+          markTabAsEdited("text");
+          setter(newValue);
+        }}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.name} value={option.name}>
+              {option.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   return (
     <div className="container w-full min-w-[80vw] mx-[0px] h-[650px] py-2">
@@ -296,73 +332,76 @@ export default function ImprovedProductForm({
                 <div className="space-y-4">
                   <h2 className="text-2xl font-bold">Product Details</h2>
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="fit">Fit</Label>
-                      <Input
-                        id="fit"
-                        value={fit}
-                        onChange={(e) => {
-                          markTabAsEdited("text");
-
-                          setFit(e.target.value);
-                        }}
-                        placeholder="Fit"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="style">Style</Label>
-                      <Input
-                        id="style"
-                        value={style}
-                        onChange={(e) => {
-                          markTabAsEdited("text");
-
-                          setStyle(e.target.value);
-                        }}
-                        placeholder="Style"
-                      />
-                    </div>
-                    <div className="space-y-2">
+                    {renderSelect(
+                      "Fit",
+                      fit,
+                      setFit,
+                      globalData.globalFit.nodes,
+                    )}
+                    {renderSelect(
+                      "Gender",
+                      gender,
+                      setGender,
+                      globalData.globalGenders.nodes,
+                    )}
+                    {renderSelect(
+                      "Collection",
+                      collection,
+                      setCollection,
+                      globalData.globalCollections.nodes,
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    {renderSelect(
+                      "Features",
+                      features,
+                      setFeatures,
+                      globalData.globalFeatures.nodes,
+                    )}
+                    {renderSelect(
+                      "Material",
+                      material,
+                      setMaterial,
+                      globalData.globalMaterial.nodes,
+                    )}
+                    {renderSelect(
+                      "Neckline",
+                      neckline,
+                      setNeckline,
+                      globalData.globalNeckline.nodes,
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    {renderSelect(
+                      "Print",
+                      print,
+                      setPrint,
+                      globalData.globalPrint.nodes,
+                    )}
+                    {renderSelect(
+                      "Sleeve Length",
+                      sleeveLength,
+                      setSleeveLength,
+                      globalData.globalSleeveLength.nodes,
+                    )}
+                    {renderSelect(
+                      "Material & Care",
+                      material,
+                      setMaterial,
+                      globalData.globalMaterial.nodes,
+                    )}
+                    {/* <div className="space-y-2">
                       <Label htmlFor="material-care">Material & Care</Label>
                       <Input
                         id="material-care"
                         value={materialCare}
                         onChange={(e) => {
                           markTabAsEdited("text");
-
                           setMaterialCare(e.target.value);
                         }}
                         placeholder="Material & Care"
                       />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="fit">Gender</Label>
-                      <Input
-                        id="fit"
-                        value={gender}
-                        onChange={(e) => {
-                          markTabAsEdited("text");
-
-                          setGender(e.target.value);
-                        }}
-                        placeholder="Gender"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="style">Collection</Label>
-                      <Input
-                        id="style"
-                        value={collection}
-                        onChange={(e) => {
-                          markTabAsEdited("text");
-
-                          setCollection(e.target.value);
-                        }}
-                        placeholder="Collection"
-                      />
-                    </div>
+                    </div> */}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="product-tags">Product Tags</Label>

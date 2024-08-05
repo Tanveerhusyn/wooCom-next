@@ -510,7 +510,7 @@ export default function ProductDetail({ product, sessionUser }) {
     markTabAsEdited("media");
     setState((prev) => ({ ...prev, metaLoading: true }));
 
-    if (isColor) {
+    if (isColor == true) {
       setState((prev) => ({
         ...prev,
         colorImages: prev.colorImages.map((color) => ({
@@ -533,7 +533,7 @@ export default function ProductDetail({ product, sessionUser }) {
     const token = data?.user?.accessToken || sessionUser.user.accessToken;
 
     try {
-      // Update image metadata
+      console.log("Updating metadata for image", imageId, data);
       const success = await updateImageMetadata(imageId, data, token);
 
       if (success) {
@@ -608,10 +608,17 @@ export default function ProductDetail({ product, sessionUser }) {
     pa_collection: "Collection",
   };
 
+  const isTabDisabled = (tabName) => {
+    if (tabName === "overview" || tabName === "attributes") return false;
+    return !state.editedTabs.attributes;
+  };
   const EditableTabsTrigger = ({ value, children }) => (
     <TabsTrigger
       value={value}
-      className="relative h-[40px] w-full flex justify-between items-center gap-2"
+      className={`relative h-[40px] w-full flex justify-between items-center gap-2 ${
+        isTabDisabled(value) ? "opacity-50 cursor-not-allowed" : ""
+      }`}
+      disabled={isTabDisabled(value)}
     >
       {children}
       {state.editedTabs[value] && (
@@ -1001,6 +1008,7 @@ export default function ProductDetail({ product, sessionUser }) {
       <TabsContent value="text" className="py-10 h-[800px] overflow-y-auto">
         <TextForm
           product={product?.product}
+          globalData={product}
           user={data.user}
           markTabAsEdited={markTabAsEdited}
           sessionUser={sessionUser}

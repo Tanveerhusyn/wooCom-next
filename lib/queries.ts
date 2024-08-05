@@ -607,6 +607,36 @@ export async function fetchProductById(id: string): Promise<ProductData> {
       name
     }
   }
+   globalFeatures:allPaFeatures{
+      nodes{
+        name
+      }
+    }
+   globalFit: allPaFit{
+      nodes{
+        name
+      }
+    }
+    globalPrint:allPaPrint{
+      nodes{
+        name
+      }
+    }
+    globalMaterial:allPaMaterial{
+      nodes{
+        name
+      }
+    }
+   globalNeckline: allPaNeckline{
+      nodes{
+        name
+      }
+    }
+   globalSleeveLength: allPaSleeveLength{
+      nodes{
+        name
+      }
+    }
 }
   `;
 
@@ -647,28 +677,49 @@ export async function updateProductExtras(
   fit: string,
   style: string,
   materialcare: string,
+  feature: string,
+  neckline: string,
+  print: string,
+  sleevelength: string,
   token: string,
-): Promise<ProductData> {
+): Promise<boolean> {
   const query = `
-    mutation UpdateProductExtras($productId: ID!, $fit: String, $materialcare: String, $style: String) {
-  updateProductExtras(input: {
-    productId: $productId
-    fit: $fit
-    materialcare: $materialcare
-    style: $style
-  }) {
-    success
-    product {
-      id
-      name
-      extras {
-        fit
-        materialcare
-        style
+    mutation UpdateProductExtras(
+      $productId: ID!, 
+      $fit: String, 
+      $style: String, 
+      $materialcare: String,
+      $feature: String,
+      $neckline: String,
+      $print: String,
+      $sleevelength: String
+    ) {
+      updateProductExtras(input: {
+        productId: $productId
+        fit: $fit
+        style: $style
+        materialcare: $materialcare
+        feature: $feature
+        neckline: $neckline
+        print: $print
+        sleevelength: $sleevelength
+      }) {
+        success
+        product {
+          id
+          name
+          extras {
+            fit
+            style
+            materialcare
+            feature
+            neckline
+            print
+            sleevelength
+          }
+        }
       }
     }
-  }
-}
   `;
 
   const decodedId = decodeBase64Id(id);
@@ -678,6 +729,10 @@ export async function updateProductExtras(
     fit,
     style,
     materialcare,
+    feature,
+    neckline,
+    print,
+    sleevelength,
   };
 
   try {
@@ -698,15 +753,38 @@ export async function updateProductExtras(
     });
 
     const result: {
-      data: any;
+      data: {
+        updateProductExtras: {
+          success: boolean;
+          product: {
+            id: string;
+            name: string;
+            extras: {
+              fit: string;
+              style: string;
+              materialcare: string;
+              feature: string;
+              neckline: string;
+              print: string;
+              sleevelength: string;
+            };
+          };
+        };
+      };
       errors?: Array<{ message: string }>;
     } = await response.json();
+
     console.log("Update Product", result);
+
+    if (result.errors) {
+      console.error("GraphQL errors:", result.errors);
+      return false;
+    }
 
     return result.data.updateProductExtras.success;
   } catch (error) {
     console.error("Error updating product:", error);
-    return null;
+    return false;
   }
 }
 

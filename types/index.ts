@@ -285,6 +285,32 @@ interface GlobalAttributes {
       name: string;
     }[];
   };
+
+  globalFit: {
+    nodes: {
+      name: string;
+    }[];
+  };
+  globalPrint: {
+    nodes: {
+      name: string;
+    }[];
+  };
+  globalMaterial: {
+    nodes: {
+      name: string;
+    }[];
+  };
+  globalNeckline: {
+    nodes: {
+      name: string;
+    }[];
+  };
+  globalSleeveLength: {
+    nodes: {
+      name: string;
+    }[];
+  };
 }
 
 export interface ProductData {
